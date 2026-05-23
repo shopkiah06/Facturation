@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Facturation V2 Firebase</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+body{background:#f5f7ff;color:#16182f}
+button,input,textarea{font-family:inherit}
+.hidden{display:none!important}
+
+/* LOGIN MODERNE */
+.login-page{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:25px;
+  background:
+    radial-gradient(circle at 15% 85%,rgba(255,255,255,.18),transparent 30%),
+    radial-gradient(circle at 88% 10%,rgba(255,255,255,.22),transparent 28%),
+    linear-gradient(135deg,#1f13c7,#725cff);
+}
+.login-shell{
+  width:min(1120px,100%);
+  min-height:650px;
+  display:grid;
+  grid-template-columns:1fr 1.05fr;
+  background:white;
+  border-radius:28px;
+  overflow:hidden;
+  box-shadow:0 30px 90px rgba(22,16,120,.35);
+}
+.login-left{
+  position:relative;
+  overflow:hidden;
+  color:white;
+  padding:55px;
+  background:
+    radial-gradient(circle at 90% 15%,rgba(255,255,255,.15),transparent 28%),
+    linear-gradient(160deg,#5d3df7,#2513b8);
+}
+.login-left:before{
+  content:"";
+  position:absolute;
+  width:280px;height:280px;
+  border-radius:50%;
+  background:rgba(255,255,255,.08);
+  bottom:-90px;left:-80px;
+}
+.login-icon{
+  width:82px;height:82px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:22px;
+  background:rgba(255,255,255,.14);
+  font-size:42px;
+  margin-bottom:28px;
+}
+.login-left h1{
+  font-size:42px;
+  line-height:1.05;
+  margin-bottom:14px;
+}
+.login-left h1 span{opacity:.45}
+.login-left p{
+  font-size:20px;
+  line-height:1.45;
+  opacity:.95;
+  margin-bottom:35px;
+}
+.feature-list{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  position:relative;
+  z-index:1;
+}
+.feature{
+  display:flex;
+  gap:14px;
+  align-items:center;
+}
+.feature .ico{
+  width:44px;height:44px;border-radius:13px;
+  background:rgba(255,255,255,.13);
+  display:flex;align-items:center;justify-content:center;
+  font-size:21px;
+}
+.feature b{display:block;margin-bottom:3px}
+.feature small{opacity:.85}
+.login-illustration{
+  margin-top:35px;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:24px;
+  padding:20px;
+  display:flex;
+  align-items:center;
+  gap:18px;
+  max-width:390px;
+}
+.fake-laptop{
+  width:145px;height:92px;
+  border-radius:14px;
+  background:rgba(255,255,255,.85);
+  padding:12px;
+  color:#4b2be8;
+}
+.fake-laptop div{
+  height:10px;background:#d9d4ff;border-radius:20px;margin-bottom:9px;
+}
+.fake-paper{
+  background:white;color:#4b2be8;
+  padding:16px;border-radius:14px;font-weight:900;
+  box-shadow:0 8px 22px rgba(0,0,0,.12);
+}
+.login-right{
+  padding:70px 70px 45px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.login-box{
+  width:100%;
+  max-width:470px;
+}
+.secure-badge{
+  width:78px;height:78px;
+  margin:0 auto 25px;
+  border-radius:50%;
+  background:#f0edff;
+  color:#4b2be8;
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;
+}
+.login-box h2{
+  text-align:center;
+  font-size:32px;
+  margin-bottom:10px;
+}
+.login-box .sub{
+  text-align:center;
+  color:#6b7280;
+  margin-bottom:34px;
+}
+.login-box label{
+  display:block;
+  font-weight:800;
+  margin:17px 0 8px;
+  color:#313348;
+}
+.login-input{
+  position:relative;
+}
+.login-input span{
+  position:absolute;
+  left:15px;
+  top:50%;
+  transform:translateY(-50%);
+  color:#6b7280;
+}
+.login-box input{
+  width:100%;
+  padding:16px 16px 16px 48px;
+  border:1px solid #dfe3f2;
+  border-radius:14px;
+  font-size:15px;
+  outline:none;
+}
+.login-box input:focus{
+  border-color:#725cff;
+  box-shadow:0 0 0 4px rgba(114,92,255,.13);
+}
+.remember-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin:18px 0 28px;
+  color:#55586f;
+  font-size:14px;
+}
+.remember-row input{width:auto}
+.login-btn{
+  width:100%;
+  border:0;
+  border-radius:15px;
+  padding:17px;
+  font-size:17px;
+  font-weight:900;
+  cursor:pointer;
+  color:white;
+  background:linear-gradient(135deg,#725cff,#4b2be8);
+  box-shadow:0 12px 25px rgba(75,43,232,.28);
+}
+.login-footer{
+  text-align:center;
+  margin-top:36px;
+  color:#8a8fa3;
+  font-size:13px;
+}
+
+.primary{
+  border:0;background:linear-gradient(135deg,#725cff,#4b2be8);
+  color:white;padding:13px 18px;border-radius:12px;font-weight:800;cursor:pointer
+}
+.secondary{
+  border:1px solid #ded8ff;background:#f4f2ff;color:#4b2be8;
+  padding:12px 16px;border-radius:12px;font-weight:800;cursor:pointer
+}
+.danger{
+  border:0;background:#ef4444;color:white;padding:11px 15px;border-radius:12px;font-weight:800;cursor:pointer
+}
+
+.app{display:none;min-height:100vh}
+.sidebar{
+  width:260px;background:linear-gradient(180deg,#5b3df5,#3320b8);
+  color:white;position:fixed;left:0;top:0;bottom:0;padding:22px;z-index:20
+}
+.brand{font-size:25px;font-weight:900;margin-bottom:4px}
+.subtitle{font-size:12px;opacity:.8;margin-bottom:30px}
+.nav{display:flex;flex-direction:column;gap:12px}
+.nav button{
+  width:100%;border:0;text-align:left;padding:15px 16px;border-radius:13px;
+  background:rgba(255,255,255,.08);color:white;font-weight:800;cursor:pointer
+}
+.nav button.active,.nav button:hover{background:rgba(255,255,255,.23)}
+.userbox{
+  position:absolute;left:22px;right:22px;bottom:22px;
+  background:rgba(255,255,255,.13);border-radius:18px;padding:15px
+}
+.userbox small{opacity:.8}
+.logout{width:100%;margin-top:14px;background:#ff4d5e}
+
+.main{margin-left:260px;padding:28px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:25px}
+.menu-btn{display:none}
+.page-title{font-size:30px;color:#382bd6}
+.top-actions{display:flex;gap:12px;align-items:center}
+.pill{
+  background:white;border:1px solid #eef0fb;border-radius:14px;padding:12px 16px;
+  box-shadow:0 8px 25px rgba(70,70,120,.07);font-weight:700
+}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:22px}
+.card,.panel{
+  background:white;border-radius:22px;padding:24px;
+  box-shadow:0 8px 25px rgba(70,70,120,.08)
+}
+.card h3{font-size:13px;color:#6b7280;margin-bottom:9px}
+.card strong{font-size:24px;color:#382bd6}
+.panel{margin-bottom:22px}
+.panel h2{color:#382bd6;margin-bottom:18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 180px;gap:18px}
+label{font-weight:800;font-size:13px;color:#3f4158;display:block;margin-bottom:8px}
+input,textarea,select{
+  width:100%;padding:13px;border:1px solid #dfe3f2;border-radius:12px;font-size:15px;background:white;outline:none
+}
+input:focus,textarea:focus{border-color:#725cff;box-shadow:0 0 0 3px rgba(114,92,255,.12)}
+.form-block{margin-bottom:16px}
+.actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+table{width:100%;border-collapse:collapse;background:white;border-radius:14px;overflow:hidden}
+th{background:#4b2be8;color:white;font-size:13px;padding:13px;text-align:left}
+td{border-bottom:1px solid #eef0fb;padding:13px;font-size:14px}
+.total-box{margin-top:18px;text-align:right;font-size:26px;color:#382bd6;font-weight:900}
+.notice{
+  background:#fff8e8;border:1px solid #ffe4a6;color:#7a4b00;
+  padding:14px;border-radius:14px;margin-top:15px
+}
+
+/* A4 */
+.a4-page{
+  width:794px;min-height:1123px;background:white;margin:0 auto 25px;padding:35px;color:#000;
+  box-shadow:0 0 18px rgba(0,0,0,.15);font-family:Arial,sans-serif
+}
+.print-invoice{border-bottom:1px dashed #999;padding:12px 0 16px;margin-bottom:14px;cursor:grab}
+.print-head{display:flex;justify-content:space-between;align-items:flex-start;font-size:14px;margin-bottom:9px}
+.bl-badge{border:2px solid #000;padding:7px 14px;border-radius:6px;font-weight:900}
+.print-table th{background:#111!important;color:white!important;border:1px solid #777;padding:6px;font-size:11px;text-align:center}
+.print-table td{border:1px solid #777;padding:6px;font-size:11px;text-align:center}
+.remark-print{border:1px solid #777;padding:8px;font-size:12px;margin-top:6px}
+.dragging{opacity:.45}
+
+@media(max-width:950px){
+  .login-shell{grid-template-columns:1fr;min-height:auto}
+  .login-left{padding:32px}
+  .login-left h1{font-size:32px}
+  .login-left p{font-size:16px}
+  .login-illustration{display:none}
+  .login-right{padding:35px 25px}
+  .sidebar{transform:translateX(-105%);transition:.25s}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0;padding:16px}
+  .menu-btn{display:inline-block}
+  .cards,.grid2,.grid3{grid-template-columns:1fr}
+  .topbar{gap:10px}
+  .page-title{font-size:23px}
+  .a4-page{width:100%;min-height:auto;padding:15px}
+  .top-actions{flex-wrap:wrap;justify-content:flex-end}
+}
+</style>
+</head>
+
+<body>
+
+<div class="login-page" id="loginPage">
+  <div class="login-shell">
+    <div class="login-left">
+      <div class="login-icon">📄</div>
+      <h1>Facturation <span>V2</span></h1>
+      <p>Votre solution de facturation simple, rapide et sécurisée.</p>
+
+      <div class="feature-list">
+        <div class="feature"><div class="ico">⚡</div><div><b>Rapide & efficace</b><small>Créez vos factures en quelques clics</small></div></div>
+        <div class="feature"><div class="ico">🛡️</div><div><b>Sécurisé</b><small>Données protégées avec Firebase</small></div></div>
+        <div class="feature"><div class="ico">📊</div><div><b>Accessible</b><small>Factures disponibles partout</small></div></div>
+        <div class="feature"><div class="ico">☁️</div><div><b>Sauvegarde</b><small>Enregistrement en ligne</small></div></div>
+      </div>
+
+      <div class="login-illustration">
+        <div class="fake-laptop">
+          <div style="width:70%"></div>
+          <div style="width:90%"></div>
+          <div style="width:55%"></div>
+          <div style="width:78%"></div>
+        </div>
+        <div class="fake-paper">FACTURE<br>✓</div>
+      </div>
+    </div>
+
+    <div class="login-right">
+      <div class="login-box">
+        <div class="secure-badge">🔒</div>
+        <h2>Connexion</h2>
+        <p class="sub">Connectez-vous pour accéder à votre espace</p>
+
+        <label>Adresse email</label>
+        <div class="login-input">
+          <span>✉️</span>
+          <input type="email" id="email" placeholder="Entrez votre email">
+        </div>
+
+        <label>Mot de passe</label>
+        <div class="login-input">
+          <span>🔑</span>
+          <input type="password" id="password" placeholder="Entrez votre mot de passe">
+        </div>
+
+        <div class="remember-row">
+          <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:700">
+            <input type="checkbox" checked> Se souvenir de moi
+          </label>
+          <span style="color:#4b2be8;font-weight:700">Sécurisé</span>
+        </div>
+
+        <button class="login-btn" id="loginBtn">➜ Se connecter</button>
+        <div class="login-footer">© 2026 Facturation V2</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">🧾 Facturation V2</div>
+    <div class="subtitle">Gestion rapide avec Firebase</div>
+    <div class="nav">
+      <button class="active" data-page="home">🏠 Accueil</button>
+      <button data-page="new">➕ Nouvelle facture</button>
+      <button data-page="daily">📄 Facture du Jour</button>
+      <button data-page="history">🕘 Historique</button>
+    </div>
+    <div class="userbox">
+      <b id="userEmail">Admin</b><br>
+      <small>Connecté</small>
+      <button class="danger logout" id="logoutBtn">Déconnexion</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="actions">
+        <button class="secondary menu-btn" id="menuBtn">☰</button>
+        <h1 class="page-title" id="pageTitle">Accueil</h1>
+      </div>
+      <div class="top-actions">
+        <div class="pill" id="todayText"></div>
+        <button class="primary" onclick="openPage('new')">+ Nouvelle facture</button>
+      </div>
+    </div>
+
+    <section id="homePage">
+      <div class="cards">
+        <div class="card"><h3>CA du jour</h3><strong id="caToday">0 Ar</strong></div>
+        <div class="card"><h3>Factures du jour</h3><strong id="countToday">0</strong></div>
+        <div class="card"><h3>Total pièces</h3><strong id="piecesToday">0</strong></div>
+        <div class="card"><h3>Prochain BL</h3><strong id="nextBlHome">BL-001</strong></div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <h2>Factures récentes</h2>
+          <table>
+            <thead><tr><th>BL</th><th>Client</th><th>Total</th><th>Action</th></tr></thead>
+            <tbody id="recentBody"></tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <h2>Actions rapides</h2>
+          <div class="actions">
+            <button class="primary" onclick="openPage('new')">Créer une facture</button>
+            <button class="secondary" onclick="openPage('daily');renderA4()">Facture du Jour</button>
+          </div>
+          <div class="notice">Le numéro BL repart automatiquement à BL-001 chaque jour.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="newPage" class="hidden">
+      <div class="panel">
+        <h2>Informations facture</h2>
+        <div class="grid3">
+          <div class="form-block">
+            <label>Date</label>
+            <input type="date" id="invoiceDate">
+          </div>
+          <div class="form-block">
+            <label>Nom du client</label>
+            <input type="text" id="clientName" placeholder="Nom du client">
+          </div>
+          <div class="form-block">
+            <label>Numéro BL automatique</label>
+            <input type="text" id="blNumber" readonly>
+          </div>
+        </div>
+
+        <div class="grid3">
+          <div class="form-block">
+            <label>Nom d'article</label>
+            <input type="text" id="articleName" placeholder="Ex: PK GLYCERINE">
+          </div>
+          <div class="form-block">
+            <label>Prix unitaire</label>
+            <input type="number" id="unitPrice" placeholder="Prix">
+          </div>
+          <div class="form-block">
+            <label>Nombre de pièces</label>
+            <input type="number" id="qty" placeholder="Qté">
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="addItemBtn">+ Ajouter à la facture</button>
+          <button class="secondary" id="remarkBtn">+ Remarque</button>
+        </div>
+
+        <div id="remarkArea" class="hidden" style="margin-top:16px">
+          <label>Remarque</label>
+          <textarea id="remark" rows="3" placeholder="Ex: livraison demain matin..."></textarea>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Détails des articles</h2>
+        <table>
+          <thead>
+            <tr><th>#</th><th>Article</th><th>Quantité</th><th>Prix U.</th><th>Total</th><th>Action</th></tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+        <div class="total-box">TOTAL GÉNÉRAL : <span id="grandTotal">0 Ar</span></div>
+        <div class="actions" style="justify-content:flex-end;margin-top:20px">
+          <button class="secondary" onclick="openPage('daily');renderA4()">Aperçu A4</button>
+          <button class="primary" id="saveInvoiceBtn">Enregistrer</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="dailyPage" class="hidden">
+      <div class="panel">
+        <div class="actions" style="justify-content:space-between;margin-bottom:18px">
+          <h2>Facture du Jour — Aperçu A4</h2>
+          <div class="actions">
+            <button class="secondary" onclick="autoOrganize()">Organisation automatique</button>
+            <button class="primary" onclick="downloadWord()">Télécharger Word A4</button>
+          </div>
+        </div>
+        <div id="a4Container"></div>
+      </div>
+    </section>
+
+    <section id="historyPage" class="hidden">
+      <div class="panel">
+        <h2>Historique</h2>
+        <div class="grid3">
+          <div><label>Du</label><input type="date" id="filterFrom"></div>
+          <div><label>Au</label><input type="date" id="filterTo"></div>
+          <div><label>Client</label><input type="text" id="filterClient" placeholder="Tous"></div>
+        </div>
+        <button class="primary" style="margin-top:16px" onclick="renderHistory()">Filtrer</button>
+        <table style="margin-top:20px">
+          <thead><tr><th>BL</th><th>Date</th><th>Client</th><th>Total</th><th>Action</th></tr></thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDBuBVP63NFqiv7dptlAbT9OP6rZHJKluk",
+  authDomain: "facturation-7dd16.firebaseapp.com",
+  projectId: "facturation-7dd16",
+  storageBucket: "facturation-7dd16.firebasestorage.app",
+  messagingSenderId: "398728072801",
+  appId: "1:398728072801:web:8128b64634dce8598a420"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+let invoices = [];
+let currentItems = [];
+let editingId = null;
+
+const today = new Date().toISOString().slice(0,10);
+document.getElementById("todayText").textContent = formatDate(today);
+
+function formatDate(d){
+  const [y,m,day] = d.split("-");
+  return `${day}/${m}/${y}`;
+}
+function money(n){
+  return Math.round(Number(n||0)).toLocaleString("fr-FR") + " Ar";
+}
+function todayInvoices(){
+  return invoices.filter(x=>x.date === today);
+}
+function nextBLForDate(date){
+  const sameDay = invoices.filter(x => x.date === date);
+  let max = 0;
+  sameDay.forEach(inv=>{
+    const m = String(inv.bl || "").match(/BL-(\d+)/);
+    if(m) max = Math.max(max, Number(m[1]));
+  });
+  return "BL-" + String(max + 1).padStart(3,"0");
+}
+
+window.openPage = function(page){
+  document.querySelectorAll("main section").forEach(s=>s.classList.add("hidden"));
+  document.getElementById(page+"Page").classList.remove("hidden");
+  const titles = {home:"Accueil",new:"Nouvelle Facture",daily:"Facture du Jour",history:"Historique"};
+  document.getElementById("pageTitle").textContent = titles[page];
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active", b.dataset.page===page));
+  document.getElementById("sidebar").classList.remove("open");
+  if(page==="new" && !editingId) resetInvoiceForm();
+  if(page==="daily") renderA4();
+  if(page==="history") renderHistory();
+};
+
+document.querySelectorAll(".nav button").forEach(btn=>{
+  btn.addEventListener("click",()=>window.openPage(btn.dataset.page));
+});
+document.getElementById("menuBtn").onclick = ()=>document.getElementById("sidebar").classList.toggle("open");
+
+document.getElementById("loginBtn").addEventListener("click", async ()=>{
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  try{
+    await signInWithEmailAndPassword(auth,email,password);
+  }catch(e){
+    alert("Erreur connexion : " + e.message);
+  }
+});
+document.getElementById("logoutBtn").addEventListener("click", async ()=>signOut(auth));
+
+onAuthStateChanged(auth, async (user)=>{
+  if(user){
+    document.getElementById("loginPage").style.display="none";
+    document.getElementById("app").style.display="block";
+    document.getElementById("userEmail").textContent=user.email;
+    await loadInvoices();
+    window.openPage("home");
+  }else{
+    document.getElementById("loginPage").style.display="flex";
+    document.getElementById("app").style.display="none";
+  }
+});
+
+async function loadInvoices(){
+  const q = query(collection(db,"factures"), orderBy("createdAt","desc"));
+  const snap = await getDocs(q);
+  invoices = snap.docs.map(d=>({id:d.id, ...d.data()}));
+  renderHome();
+}
+
+function renderHome(){
+  const t = todayInvoices();
+  const ca = t.reduce((s,x)=>s+Number(x.total||0),0);
+  const pieces = t.reduce((s,x)=>s+(x.items||[]).reduce((a,i)=>a+Number(i.qty||0),0),0);
+  document.getElementById("caToday").textContent = money(ca);
+  document.getElementById("countToday").textContent = t.length;
+  document.getElementById("piecesToday").textContent = pieces;
+  document.getElementById("nextBlHome").textContent = nextBLForDate(today);
+  document.getElementById("recentBody").innerHTML = invoices.slice(0,8).map(inv=>`
+    <tr>
+      <td>${inv.bl}</td>
+      <td>${inv.client}</td>
+      <td>${money(inv.total)}</td>
+      <td><button class="secondary" onclick="editInvoice('${inv.id}')">Modifier</button></td>
+    </tr>
+  `).join("");
+}
+
+function resetInvoiceForm(){
+  editingId = null;
+  currentItems = [];
+  document.getElementById("invoiceDate").value = today;
+  document.getElementById("clientName").value = "";
+  document.getElementById("blNumber").value = nextBLForDate(today);
+  document.getElementById("articleName").value = "";
+  document.getElementById("unitPrice").value = "";
+  document.getElementById("qty").value = "";
+  document.getElementById("remark").value = "";
+  document.getElementById("remarkArea").classList.add("hidden");
+  renderItems();
+}
+
+document.getElementById("invoiceDate").addEventListener("change",()=>{
+  if(!editingId) document.getElementById("blNumber").value = nextBLForDate(document.getElementById("invoiceDate").value);
+});
+
+document.getElementById("remarkBtn").onclick = ()=>document.getElementById("remarkArea").classList.toggle("hidden");
+
+document.getElementById("addItemBtn").onclick = ()=>{
+  const name = document.getElementById("articleName").value.trim();
+  const unit = Number(document.getElementById("unitPrice").value||0);
+  const qty = Number(document.getElementById("qty").value||0);
+  if(!name || !unit || !qty){ alert("Remplis article, quantité et prix."); return; }
+  currentItems.push({name,unit,qty,total:unit*qty});
+  document.getElementById("articleName").value="";
+  document.getElementById("unitPrice").value="";
+  document.getElementById("qty").value="";
+  document.getElementById("articleName").focus();
+  renderItems();
+};
+
+function renderItems(){
+  document.getElementById("itemsBody").innerHTML = currentItems.map((it,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td>${it.name}</td>
+      <td>${it.qty}</td>
+      <td>${money(it.unit)}</td>
+      <td>${money(it.total)}</td>
+      <td><button class="danger" onclick="removeItem(${i})">X</button></td>
+    </tr>
+  `).join("");
+  const total = currentItems.reduce((s,i)=>s+i.total,0);
+  document.getElementById("grandTotal").textContent = money(total);
+}
+window.removeItem = function(i){
+  currentItems.splice(i,1);
+  renderItems();
+};
+
+document.getElementById("saveInvoiceBtn").onclick = async ()=>{
+  const date = document.getElementById("invoiceDate").value;
+  const client = document.getElementById("clientName").value.trim();
+  const bl = document.getElementById("blNumber").value.trim();
+  const remark = document.getElementById("remark").value.trim();
+  const total = currentItems.reduce((s,i)=>s+i.total,0);
+  if(!client){alert("Ajoute le nom du client.");return}
+  if(!currentItems.length){alert("Ajoute au moins un article.");return}
+  const data = {date,client,bl,remark,items:currentItems,total,updatedAt:new Date().toISOString()};
+  if(editingId){
+    await updateDoc(doc(db,"factures",editingId), data);
+  }else{
+    await addDoc(collection(db,"factures"), {...data, createdAt:serverTimestamp()});
+  }
+  await loadInvoices();
+  alert("Facture enregistrée ✅");
+  resetInvoiceForm();
+  window.openPage("home");
+};
+
+window.editInvoice = function(id){
+  const inv = invoices.find(x=>x.id===id);
+  if(!inv) return;
+  editingId = id;
+  document.getElementById("invoiceDate").value = inv.date;
+  document.getElementById("clientName").value = inv.client;
+  document.getElementById("blNumber").value = inv.bl;
+  document.getElementById("remark").value = inv.remark || "";
+  document.getElementById("remarkArea").classList.toggle("hidden", !inv.remark);
+  currentItems = [...(inv.items||[])];
+  renderItems();
+  window.openPage("new");
+};
+
+window.deleteInvoice = async function(id){
+  if(confirm("Supprimer cette facture ?")){
+    await deleteDoc(doc(db,"factures",id));
+    await loadInvoices();
+    renderHistory();
+  }
+};
+
+window.renderHistory = function(){
+  const from = document.getElementById("filterFrom").value;
+  const to = document.getElementById("filterTo").value;
+  const client = document.getElementById("filterClient").value.toLowerCase();
+  let list = [...invoices];
+  if(from) list = list.filter(x=>x.date>=from);
+  if(to) list = list.filter(x=>x.date<=to);
+  if(client) list = list.filter(x=>String(x.client).toLowerCase().includes(client));
+  document.getElementById("historyBody").innerHTML = list.map(inv=>`
+    <tr>
+      <td>${inv.bl}</td>
+      <td>${formatDate(inv.date)}</td>
+      <td>${inv.client}</td>
+      <td>${money(inv.total)}</td>
+      <td>
+        <button class="secondary" onclick="editInvoice('${inv.id}')">Modifier</button>
+        <button class="danger" onclick="deleteInvoice('${inv.id}')">Supprimer</button>
+      </td>
+    </tr>
+  `).join("");
+};
+
+function printInvoice(inv){
+  const rows = (inv.items||[]).map((it,i)=>`
+    <tr>
+      <td>${i+1}</td><td>${it.qty}</td><td style="text-align:left">${it.name}</td>
+      <td>${money(it.unit)}</td><td>${money(it.total)}</td>
+    </tr>
+  `).join("");
+  return `
+    <div class="print-invoice" draggable="true" data-id="${inv.id}">
+      <div class="print-head">
+        <div>
+          <div>Date : ${formatDate(inv.date)}</div>
+          <div style="margin-top:7px">Client : <b>${inv.client}</b></div>
+        </div>
+        <div class="bl-badge">${inv.bl}</div>
+      </div>
+      <table class="print-table">
+        <thead><tr><th>N°</th><th>Nombre de pièces</th><th>Nom d'article</th><th>Prix Unitaire</th><th>Prix Total</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td colspan="4" style="text-align:right;font-weight:900">GRAND TOTAL</td><td style="font-weight:900">${money(inv.total)}</td></tr></tfoot>
+      </table>
+      ${inv.remark ? `<div class="remark-print"><b>Remarque :</b> ${inv.remark}</div>` : ""}
+    </div>`;
+}
+
+window.renderA4 = function(){
+  const list = todayInvoices();
+  const cont = document.getElementById("a4Container");
+  if(!list.length){cont.innerHTML="<p>Aucune facture aujourd’hui.</p>";return}
+  let pages=[[]], h=0;
+  list.forEach(inv=>{
+    const est = 105 + (inv.items||[]).length*24 + (inv.remark?35:0);
+    if(h+est>980){pages.push([]);h=0}
+    pages[pages.length-1].push(inv);h+=est;
+  });
+  cont.innerHTML = pages.map((p,i)=>`
+    <div class="a4-page">
+      <div style="display:flex;justify-content:space-between;margin-bottom:15px;font-size:13px">
+        <b>FACTURES DU JOUR</b><span>Page ${i+1}/${pages.length}</span>
+      </div>
+      ${p.map(printInvoice).join("")}
+    </div>
+  `).join("");
+  activateDrag();
+};
+
+function activateDrag(){
+  let dragged=null;
+  document.querySelectorAll(".print-invoice").forEach(el=>{
+    el.addEventListener("dragstart",()=>{dragged=el;el.classList.add("dragging")});
+    el.addEventListener("dragend",()=>{el.classList.remove("dragging")});
+    el.addEventListener("dragover",e=>{
+      e.preventDefault();
+      const after=getDragAfterElement(el.parentNode,e.clientY);
+      if(after==null) el.parentNode.appendChild(dragged);
+      else el.parentNode.insertBefore(dragged,after);
+    });
+  });
+}
+function getDragAfterElement(container,y){
+  const els=[...container.querySelectorAll(".print-invoice:not(.dragging)")];
+  return els.reduce((closest,child)=>{
+    const box=child.getBoundingClientRect();
+    const offset=y-box.top-box.height/2;
+    if(offset<0 && offset>closest.offset) return {offset,element:child};
+    return closest;
+  },{offset:Number.NEGATIVE_INFINITY}).element;
+}
+
+window.autoOrganize = function(){
+  invoices.sort((a,b)=>(a.items||[]).length-(b.items||[]).length);
+  renderA4();
+};
+
+window.downloadWord = function(){
+  const content = document.getElementById("a4Container").innerHTML;
+  const style = `<style>
+    body{font-family:Arial;color:#000}
+    .a4-page{page-break-after:always;padding:20px}
+    .print-invoice{border-bottom:1px dashed #999;padding:10px 0 15px;margin-bottom:12px}
+    .print-head{display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px}
+    .bl-badge{border:2px solid #000;padding:7px 14px;font-weight:900;border-radius:6px}
+    table{width:100%;border-collapse:collapse}
+    th{background:#111;color:#fff}
+    th,td{border:1px solid #777;padding:6px;font-size:11px;text-align:center}
+    .remark-print{border:1px solid #777;padding:8px;font-size:12px;margin-top:6px}
+  </style>`;
+  const blob = new Blob(["\ufeff",`<html><head><meta charset="UTF-8">${style}</head><body>${content}</body></html>`],{type:"application/msword"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="Factures-du-jour.doc";a.click();URL.revokeObjectURL(url);
+};
+</script>
+</body>
+</html>
