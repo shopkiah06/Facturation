@@ -99,7 +99,15 @@ td input{padding:10px;border-radius:10px}
 .a4-page{width:794px;min-height:1123px;background:white;margin:0 auto 25px;padding:35px;color:#000;box-shadow:0 0 18px rgba(0,0,0,.16);font-family:Arial,sans-serif}
 .print-invoice{border-bottom:1px dashed #999;padding:12px 0 16px;margin-bottom:14px;cursor:grab}
 .print-head{display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px}
-.bl-badge{border:2px solid #000;padding:7px 14px;border-radius:6px;font-weight:900}
+.bl-badge{
+  border:1.5px solid #000;
+  padding:6px 18px;
+  border-radius:999px;
+  font-weight:900;
+  min-width:95px;
+  text-align:center;
+  background:#f8f8f8;
+}
 .print-table th{background:#111!important;color:#fff!important;border:1px solid #777;padding:6px;font-size:11px;text-align:center}
 .print-table td{border:1px solid #777;padding:6px;font-size:11px;text-align:center}
 .print-title{font-weight:900;margin:8px 0 5px;font-size:12px}
@@ -618,26 +626,29 @@ function printInvoice(inv){
     <table class="print-table"><thead><tr><th>N°</th><th>Nombre de pièces</th><th>Nom d'article</th><th>Prix Unitaire</th><th>Prix Total</th></tr></thead>
     <tbody>${(t.items||[]).map((it,i)=>`<tr><td>${i+1}</td><td>${it.qty}</td><td style="text-align:left">${it.name}</td><td>${money(it.unit,cur)}</td><td>${money(it.total,cur)}</td></tr>`).join("")}</tbody></table>`).join("");
   const deliveryFee=Number(inv.deliveryFee||0), advance=Number(inv.advance||0), clientBalance=Number(inv.clientBalance||0), subtotalValue=Number(inv.subtotal||0), grandValue=Number(inv.grandTotal||inv.total||0), remainingValue=Number(inv.remaining||0);
-  const summaryRows=`
+  const hasExtra = deliveryFee>0 || advance>0 || clientBalance>0;
+  const summaryRows = hasExtra ? `
     <div><b>Sous-total</b><b>${money(subtotalValue,cur)}</b></div>
     ${deliveryFee>0?`<div>Livraison <b>${money(deliveryFee,cur)}</b></div>`:""}
     <div><b>Grand Total</b><b>${money(grandValue,cur)}</b></div>
     ${advance>0?`<div>Avance <b>${money(advance,cur)}</b></div>`:""}
-    ${(advance>0||remainingValue>0)?`<div><b>Reste à payer</b><b>${money(remainingValue,cur)}</b></div>`:""}
+    ${advance>0?`<div><b>Reste à payer</b><b>${money(remainingValue,cur)}</b></div>`:""}
     ${clientBalance>0?`<div>Reste chez client <b>${money(clientBalance,cur)}</b></div>`:""}
+  ` : `
+    <div><b>Total</b><b>${money(grandValue,cur)}</b></div>
   `;
-  return `<div class="print-invoice" draggable="true"><div class="print-head"><div>Date : ${formatDate(inv.date)}<br><br>Client : <b>${inv.client}</b><br><br>Devise : <b>${cur}</b></div><div class="bl-badge">${inv.bl}</div></div>${tables}<div class="print-summary">${summaryRows}</div>${inv.remark?`<div class="remark-print"><b>Remarque :</b> ${inv.remark}</div>`:""}</div>`
+  return `<div class="print-invoice" draggable="true"><div class="print-head"><div>Date : ${formatDate(inv.date)}<br><br>Client : <b>${inv.client}</b></div><div class="bl-badge">${inv.bl}</div></div>${tables}<div class="print-summary">${summaryRows}</div>${inv.remark?`<div class="remark-print"><b>Remarque :</b> ${inv.remark}</div>`:""}</div>`
 }
 window.renderA4=function(){
   const list=dateInvoices(selectedDaily()), cont=document.getElementById("a4Container");
   if(!list.length){cont.innerHTML="<p>Aucune facture pour cette date.</p>";return}
   let pages=[[]], h=0;list.forEach(inv=>{const count=(inv.tables||[]).reduce((s,t)=>s+(t.items||[]).length,0), est=150+count*24+(inv.tables||[]).length*30;if(h+est>980){pages.push([]);h=0}pages[pages.length-1].push(inv);h+=est});
-  cont.innerHTML=pages.map((p,i)=>`<div class="a4-page"><div style="display:flex;justify-content:space-between;margin-bottom:15px;font-size:13px"><b>FACTURES DU ${formatDate(selectedDaily())}</b><span>Page ${i+1}/${pages.length}</span></div>${p.map(printInvoice).join("")}</div>`).join("");
+  cont.innerHTML=pages.map((p,i)=>`<div class="a4-page"><div style="display:flex;justify-content:flex-end;margin-bottom:10px;font-size:13px"><span>Page ${i+1}/${pages.length}</span></div>${p.map(printInvoice).join("")}</div>`).join("");
 }
 window.autoOrganize=()=>{invoices.sort((a,b)=>(a.tables||[]).length-(b.tables||[]).length);renderA4()}
 window.downloadWord=function(){
   const content=document.getElementById("a4Container").innerHTML;
-  const style=`<style>body{font-family:Arial;color:#000}.a4-page{page-break-after:always;padding:20px}.print-invoice{border-bottom:1px dashed #999;padding:10px 0 15px;margin-bottom:12px}.print-head{display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px}.bl-badge{border:2px solid #000;padding:7px 14px;font-weight:900;border-radius:6px}table{width:100%;border-collapse:collapse}th{background:#111;color:#fff}th,td{border:1px solid #777;padding:6px;font-size:11px;text-align:center}.print-title{font-weight:900;margin:8px 0 5px;font-size:12px}.print-summary{margin-left:auto;margin-top:8px;width:285px;font-size:12px}.print-summary div{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:4px 0}.remark-print{border:1px solid #777;padding:8px;font-size:12px;margin-top:6px}</style>`;
+  const style=`<style>body{font-family:Arial;color:#000}.a4-page{page-break-after:always;padding:20px}.print-invoice{border-bottom:1px dashed #999;padding:10px 0 15px;margin-bottom:12px}.print-head{display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px}.bl-badge{border:1.5px solid #000;padding:6px 18px;font-weight:900;border-radius:999px;min-width:95px;text-align:center;background:#f8f8f8}table{width:100%;border-collapse:collapse}th{background:#111;color:#fff}th,td{border:1px solid #777;padding:6px;font-size:11px;text-align:center}.print-title{font-weight:900;margin:8px 0 5px;font-size:12px}.print-summary{margin-left:auto;margin-top:8px;width:285px;font-size:12px}.print-summary div{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:4px 0}.remark-print{border:1px solid #777;padding:8px;font-size:12px;margin-top:6px}</style>`;
   const blob=new Blob(["\ufeff",`<html><head><meta charset="UTF-8">${style}</head><body>${content}</body></html>`],{type:"application/msword"});
   const url=URL.createObjectURL(blob), a=document.createElement("a");a.href=url;a.download="Factures-A4.doc";a.click();URL.revokeObjectURL(url);
 }
