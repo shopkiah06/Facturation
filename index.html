@@ -101,10 +101,14 @@ td input{padding:10px;border-radius:10px}
 .print-head{display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px}
 .bl-badge{
   border:1.5px solid #000;
-  padding:6px 18px;
+  padding:0 18px;
   border-radius:999px;
   font-weight:900;
-  min-width:95px;
+  min-width:100px;
+  height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   text-align:center;
   background:#f8f8f8;
 }
@@ -113,6 +117,10 @@ td input{padding:10px;border-radius:10px}
 .print-title{font-weight:900;margin:8px 0 5px;font-size:12px}
 .print-summary{margin-left:auto;margin-top:8px;width:285px;font-size:12px}
 .print-summary div{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:4px 0}
+.table-subtotal{margin-left:auto;margin-top:4px;margin-bottom:8px;width:260px;font-size:12px;display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:4px 0}
+.a4-tools{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px 0}
+.a4-tools button{font-size:11px;padding:7px 9px;border-radius:9px}
+.page-break-note{font-size:11px;color:#555;margin-bottom:6px;font-style:italic}
 .remark-print{border:1px solid #777;padding:8px;font-size:12px;margin-top:7px}
 
 @media(max-width:950px){
@@ -296,6 +304,7 @@ const firebaseConfig = {
 
 const fbApp=initializeApp(firebaseConfig), auth=getAuth(fbApp), db=getFirestore(fbApp);
 let invoices=[], currentTables=[], editingId=null;
+let dailyOrder=[], forcedBreaks=[];
 const today=new Date().toISOString().slice(0,10);
 document.getElementById("todayText").textContent=formatDate(today);
 document.getElementById("dailyDate").value=today;
@@ -621,14 +630,23 @@ window.renderHistory=function(){
 
 function printInvoice(inv){
   const cur=inv.currency||"Ar";
-  const tables=(inv.tables||[]).map(t=>`
+  const tableCount=(inv.tables||[]).length;
+  const tables=(inv.tables||[]).map(t=>{
+    const tableSubtotal=(t.items||[]).reduce((s,it)=>s+Number(it.total||0),0);
+    return `
     <div class="print-title">${t.title}</div>
     <table class="print-table"><thead><tr><th>N°</th><th>Nombre de pièces</th><th>Nom d'article</th><th>Prix Unitaire</th><th>Prix Total</th></tr></thead>
-    <tbody>${(t.items||[]).map((it,i)=>`<tr><td>${i+1}</td><td>${it.qty}</td><td style="text-align:left">${it.name}</td><td>${money(it.unit,cur)}</td><td>${money(it.total,cur)}</td></tr>`).join("")}</tbody></table>`).join("");
-  const deliveryFee=Number(inv.deliveryFee||0), advance=Number(inv.advance||0), clientBalance=Number(inv.clientBalance||0), subtotalValue=Number(inv.subtotal||0), grandValue=Number(inv.grandTotal||inv.total||0), remainingValue=Number(inv.remaining||0);
-  const hasExtra = deliveryFee>0 || advance>0 || clientBalance>0;
-  const summaryRows = hasExtra ? `
-    <div><b>Sous-total</b><b>${money(subtotalValue,cur)}</b></div>
+    <tbody>${(t.items||[]).map((it,i)=>`<tr><td>${i+1}</td><td>${it.qty}</td><td style="text-align:left">${it.name}</td><td>${money(it.unit,cur)}</td><td>${money(it.total,cur)}</td></tr>`).join("")}</tbody></table>
+    ${tableCount>1?`<div class="table-subtotal"><b>Sous-total ${t.title}</b><b>${money(tableSubtotal,cur)}</b></div>`:""}`;
+  }).join("");
+
+  const deliveryFee=Number(inv.deliveryFee||0), advance=Number(inv.advance||0), clientBalance=Number(inv.clientBalance||0);
+  const subtotalValue=Number(inv.subtotal||0), grandValue=Number(inv.grandTotal||inv.total||0), remainingValue=Number(inv.remaining||0);
+  const hasExtra=deliveryFee>0 || advance>0 || clientBalance>0;
+  const hasManyTables=tableCount>1;
+
+  const summaryRows = (hasExtra || hasManyTables) ? `
+    ${hasManyTables?`<div><b>Total tableaux</b><b>${money(subtotalValue,cur)}</b></div>`:""}
     ${deliveryFee>0?`<div>Livraison <b>${money(deliveryFee,cur)}</b></div>`:""}
     <div><b>Grand Total</b><b>${money(grandValue,cur)}</b></div>
     ${advance>0?`<div>Avance <b>${money(advance,cur)}</b></div>`:""}
@@ -637,20 +655,192 @@ function printInvoice(inv){
   ` : `
     <div><b>Total</b><b>${money(grandValue,cur)}</b></div>
   `;
-  return `<div class="print-invoice" draggable="true"><div class="print-head"><div>Date : ${formatDate(inv.date)}<br><br>Client : <b>${inv.client}</b></div><div class="bl-badge">${inv.bl}</div></div>${tables}<div class="print-summary">${summaryRows}</div>${inv.remark?`<div class="remark-print"><b>Remarque :</b> ${inv.remark}</div>`:""}</div>`
+
+  return `<div class="print-invoice" draggable="true" data-id="${inv.id}">
+    <div class="print-head">
+      <div>Date : ${formatDate(inv.date)}<br><br>Client : <b>${inv.client}</b></div>
+      <div class="bl-badge">${inv.bl}</div>
+    </div>
+    ${tables}
+    <div class="print-summary">${summaryRows}</div>
+    ${inv.remark?`<div class="remark-print"><b>Remarque :</b> ${inv.remark}</div>`:""}
+  </div>`;
 }
+
+function a4InvoiceBlock(inv){
+  const breakText=forcedBreaks.includes(inv.id)?`<div class="page-break-note">↳ Saut de page forcé avant cette facture</div>`:"";
+  return `<div class="a4-item" data-id="${inv.id}">
+    <div class="a4-tools">
+      <button class="secondary" onclick="moveA4('${inv.id}',-1)">↑ Monter</button>
+      <button class="secondary" onclick="moveA4('${inv.id}',1)">↓ Descendre</button>
+      <button class="secondary" onclick="togglePageBreak('${inv.id}')">${forcedBreaks.includes(inv.id)?"Annuler saut page":"Saut page avant"}</button>
+    </div>
+    ${breakText}
+    ${printInvoice(inv)}
+  </div>`;
+}
+
+window.moveA4=function(id,dir){
+  const i=dailyOrder.indexOf(id);
+  if(i<0) return;
+  const j=i+dir;
+  if(j<0 || j>=dailyOrder.length) return;
+  [dailyOrder[i],dailyOrder[j]]=[dailyOrder[j],dailyOrder[i]];
+  renderA4();
+}
+
+window.togglePageBreak=function(id){
+  if(forcedBreaks.includes(id)) forcedBreaks=forcedBreaks.filter(x=>x!==id);
+  else forcedBreaks.push(id);
+  renderA4();
+}
+
+function activateDragA4(){
+  let dragged=null;
+  document.querySelectorAll(".a4-item").forEach(item=>{
+    item.setAttribute("draggable","true");
+    item.addEventListener("dragstart",()=>{dragged=item});
+    item.addEventListener("dragover",e=>e.preventDefault());
+    item.addEventListener("drop",e=>{
+      e.preventDefault();
+      if(!dragged || dragged===item) return;
+      const from=dailyOrder.indexOf(dragged.dataset.id);
+      const to=dailyOrder.indexOf(item.dataset.id);
+      if(from<0 || to<0) return;
+      dailyOrder.splice(to,0,dailyOrder.splice(from,1)[0]);
+      renderA4();
+    });
+  });
+}
+
 window.renderA4=function(){
-  const list=dateInvoices(selectedDaily()), cont=document.getElementById("a4Container");
-  if(!list.length){cont.innerHTML="<p>Aucune facture pour cette date.</p>";return}
-  let pages=[[]], h=0;list.forEach(inv=>{const count=(inv.tables||[]).reduce((s,t)=>s+(t.items||[]).length,0), est=150+count*24+(inv.tables||[]).length*30;if(h+est>980){pages.push([]);h=0}pages[pages.length-1].push(inv);h+=est});
-  cont.innerHTML=pages.map((p,i)=>`<div class="a4-page"><div style="display:flex;justify-content:flex-end;margin-bottom:10px;font-size:13px"><span>Page ${i+1}/${pages.length}</span></div>${p.map(printInvoice).join("")}</div>`).join("");
+  const listOriginal=dateInvoices(selectedDaily()), cont=document.getElementById("a4Container");
+  if(!listOriginal.length){cont.innerHTML="<p>Aucune facture pour cette date.</p>";return}
+
+  const ids=listOriginal.map(x=>x.id);
+  dailyOrder=dailyOrder.filter(id=>ids.includes(id));
+  ids.forEach(id=>{if(!dailyOrder.includes(id)) dailyOrder.push(id)});
+  forcedBreaks=forcedBreaks.filter(id=>ids.includes(id));
+
+  const list=dailyOrder.map(id=>listOriginal.find(x=>x.id===id)).filter(Boolean);
+  let pages=[[]], h=0;
+
+  list.forEach(inv=>{
+    const count=(inv.tables||[]).reduce((s,t)=>s+(t.items||[]).length,0);
+    const est=160+count*25+(inv.tables||[]).length*45;
+    if((forcedBreaks.includes(inv.id)&&pages[pages.length-1].length>0) || h+est>980){
+      pages.push([]);
+      h=0;
+    }
+    pages[pages.length-1].push(inv);
+    h+=est;
+  });
+
+  cont.innerHTML=pages.map((p,i)=>`<div class="a4-page"><div style="display:flex;justify-content:flex-end;margin-bottom:10px;font-size:13px"><span>Page ${i+1}/${pages.length}</span></div>${p.map(inv=>a4InvoiceBlock(inv)).join("")}</div>`).join("");
+  activateDragA4();
 }
-window.autoOrganize=()=>{invoices.sort((a,b)=>(a.tables||[]).length-(b.tables||[]).length);renderA4()}
+window.autoOrganize=()=>{const list=dateInvoices(selectedDaily()).slice().sort((a,b)=>((a.tables||[]).reduce((s,t)=>s+(t.items||[]).length,0))-((b.tables||[]).reduce((s,t)=>s+(t.items||[]).length,0)));dailyOrder=list.map(x=>x.id);forcedBreaks=[];renderA4()}
 window.downloadWord=function(){
-  const content=document.getElementById("a4Container").innerHTML;
-  const style=`<style>body{font-family:Arial;color:#000}.a4-page{page-break-after:always;padding:20px}.print-invoice{border-bottom:1px dashed #999;padding:10px 0 15px;margin-bottom:12px}.print-head{display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px}.bl-badge{border:1.5px solid #000;padding:6px 18px;font-weight:900;border-radius:999px;min-width:95px;text-align:center;background:#f8f8f8}table{width:100%;border-collapse:collapse}th{background:#111;color:#fff}th,td{border:1px solid #777;padding:6px;font-size:11px;text-align:center}.print-title{font-weight:900;margin:8px 0 5px;font-size:12px}.print-summary{margin-left:auto;margin-top:8px;width:285px;font-size:12px}.print-summary div{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:4px 0}.remark-print{border:1px solid #777;padding:8px;font-size:12px;margin-top:6px}</style>`;
-  const blob=new Blob(["\ufeff",`<html><head><meta charset="UTF-8">${style}</head><body>${content}</body></html>`],{type:"application/msword"});
-  const url=URL.createObjectURL(blob), a=document.createElement("a");a.href=url;a.download="Factures-A4.doc";a.click();URL.revokeObjectURL(url);
+  const pages=[...document.querySelectorAll(".a4-page")].map(page=>{
+    const clone=page.cloneNode(true);
+    clone.querySelectorAll(".a4-tools,.page-break-note").forEach(x=>x.remove());
+    return `<div class="word-page">${clone.innerHTML}</div>`;
+  }).join("");
+
+  const style=`<style>
+    @page{size:A4;margin:10mm}
+    body{font-family:Arial;color:#000;margin:0;padding:0;background:white}
+    .word-page{
+      width:190mm;
+      min-height:277mm;
+      page-break-after:always;
+      padding:0;
+      box-sizing:border-box;
+    }
+    .print-invoice{
+      border-bottom:1px dashed #999;
+      padding:8px 0 10px;
+      margin-bottom:10px;
+      page-break-inside:avoid;
+      break-inside:avoid;
+    }
+    .print-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      font-size:11pt;
+      margin-bottom:7px;
+    }
+    .bl-badge{
+      border:1.5px solid #000;
+      padding:0 14px;
+      border-radius:999px;
+      font-weight:900;
+      min-width:26mm;
+      height:11mm;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      background:#f8f8f8;
+    }
+    table{width:100%;border-collapse:collapse;table-layout:fixed}
+    th{
+      background:#111;
+      color:#fff;
+      border:1px solid #777;
+      padding:4px;
+      font-size:9pt;
+      text-align:center;
+    }
+    td{
+      border:1px solid #777;
+      padding:4px;
+      font-size:9pt;
+      text-align:center;
+    }
+    .print-title{font-weight:900;margin:6px 0 4px;font-size:10pt}
+    .table-subtotal{
+      margin-left:auto;
+      margin-top:3px;
+      margin-bottom:6px;
+      width:70mm;
+      font-size:9pt;
+      display:flex;
+      justify-content:space-between;
+      border-bottom:1px solid #ddd;
+      padding:3px 0;
+    }
+    .print-summary{
+      margin-left:auto;
+      margin-top:5px;
+      width:75mm;
+      font-size:9pt;
+    }
+    .print-summary div{
+      display:flex;
+      justify-content:space-between;
+      border-bottom:1px solid #ddd;
+      padding:3px 0;
+    }
+    .remark-print{
+      border:1px solid #777;
+      padding:6px;
+      font-size:9pt;
+      margin-top:5px;
+    }
+  </style>`;
+
+  const docHtml=`<!DOCTYPE html><html><head><meta charset="UTF-8">${style}</head><body>${pages}</body></html>`;
+  const blob=new Blob(["\ufeff",docHtml],{type:"application/msword"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="Factures-A4.doc";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 document.addEventListener("click",e=>{if(!e.target.closest(".suggest-wrap")) closeSuggestions()});
