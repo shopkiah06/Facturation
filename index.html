@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Facturation V4</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+body{background:#f5f7ff;color:#17172b}
+.hidden{display:none!important}
+button{cursor:pointer;border:0;font-weight:800}
+input,textarea,select{outline:none}
+
+/* TOAST */
+.toast{
+  position:fixed;top:22px;right:22px;background:#16a34a;color:white;
+  padding:14px 18px;border-radius:16px;font-weight:900;
+  box-shadow:0 15px 35px rgba(0,0,0,.18);z-index:9999;
+  opacity:0;transform:translateY(-15px);transition:.25s
+}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.error{background:#dc2626}
+
+/* LOGIN */
+.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px;background:linear-gradient(135deg,#1e12b8,#735cff)}
+.login-card{width:min(1050px,100%);display:grid;grid-template-columns:1fr 1fr;background:white;border-radius:32px;overflow:hidden;box-shadow:0 30px 90px rgba(20,10,100,.35)}
+.login-left{padding:55px;color:white;background:linear-gradient(160deg,#5b3df5,#2513b8);position:relative;overflow:hidden}
+.login-left:after{content:"";position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.09);right:-90px;bottom:-90px}
+.login-icon{font-size:44px;width:90px;height:90px;border-radius:24px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;margin-bottom:28px}
+.login-left h1{font-size:43px;margin-bottom:14px}
+.login-left p{font-size:19px;line-height:1.45;opacity:.95;margin-bottom:32px}
+.feature{display:flex;gap:14px;align-items:center;margin:18px 0;position:relative;z-index:1}
+.feature span{width:45px;height:45px;border-radius:14px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:22px}
+.feature small{opacity:.85}
+.login-right{padding:60px;display:flex;align-items:center;justify-content:center}
+.login-box{width:100%;max-width:430px}
+.lock{width:78px;height:78px;border-radius:50%;background:#f0edff;color:#4b2be8;display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 22px}
+.login-box h2{text-align:center;font-size:32px;margin-bottom:8px}
+.login-box p{text-align:center;color:#777;margin-bottom:28px}
+.login-box label{display:block;font-weight:800;margin:16px 0 8px}
+.login-box input{width:100%;padding:16px;border:1px solid #dfe3f2;border-radius:15px;font-size:15px}
+.login-box input:focus{border-color:#735cff;box-shadow:0 0 0 4px rgba(115,92,255,.13)}
+.primary{background:linear-gradient(135deg,#735cff,#4b2be8);color:white;padding:13px 18px;border-radius:13px}
+.secondary{background:#f2f0ff;color:#4b2be8;border:1px solid #ded8ff;padding:12px 16px;border-radius:13px}
+.danger{background:#ef4444;color:white;padding:11px 15px;border-radius:13px}
+.login-btn{width:100%;padding:17px;margin-top:24px;font-size:17px;box-shadow:0 12px 26px rgba(75,43,232,.25)}
+
+/* APP */
+.app{display:none;min-height:100vh}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:260px;background:linear-gradient(180deg,#5b3df5,#3320b8);color:white;padding:22px;z-index:20}
+.brand{font-size:24px;font-weight:900;margin-bottom:5px}
+.sub{font-size:12px;opacity:.8;margin-bottom:30px}
+.nav{display:flex;flex-direction:column;gap:12px}
+.nav button{width:100%;padding:15px 16px;border-radius:15px;text-align:left;background:rgba(255,255,255,.08);color:white}
+.nav button.active,.nav button:hover{background:rgba(255,255,255,.24)}
+.userbox{position:absolute;bottom:22px;left:22px;right:22px;background:rgba(255,255,255,.13);border-radius:18px;padding:14px}
+.userbox small{opacity:.8}
+.logout{width:100%;margin-top:12px;background:#ff4d5e}
+
+.main{margin-left:260px;padding:28px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:12px}
+.page-title{font-size:30px;color:#392ad8}
+.actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.menu-btn{display:none}
+.pill{background:white;padding:12px 16px;border-radius:14px;border:1px solid #eef0fb;box-shadow:0 8px 25px rgba(70,70,120,.07);font-weight:800}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:22px}
+.card,.panel{background:white;border-radius:24px;padding:24px;box-shadow:0 10px 28px rgba(70,70,120,.08);animation:fade .25s}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.card h3{font-size:13px;color:#777;margin-bottom:8px}
+.card strong{font-size:25px;color:#392ad8}
+.panel{margin-bottom:22px}
+.panel h2{color:#392ad8;margin-bottom:18px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 180px;gap:16px}
+.grid4{display:grid;grid-template-columns:1fr 120px 100px 130px;gap:10px}
+label{font-size:13px;font-weight:800;color:#3d4056;margin-bottom:7px;display:block}
+input,textarea,select{width:100%;padding:13px;border:1px solid #dfe3f2;border-radius:13px;font-size:15px;background:white}
+input:focus,textarea:focus,select:focus{border-color:#735cff;box-shadow:0 0 0 3px rgba(115,92,255,.12)}
+table{width:100%;border-collapse:collapse;background:white;border-radius:16px;overflow:hidden}
+th{background:#4b2be8;color:white;padding:12px;text-align:left;font-size:13px}
+td{padding:10px;border-bottom:1px solid #eef0fb;font-size:14px}
+td input{padding:10px;border-radius:10px}
+.invoice-table{margin-bottom:18px;border:1px solid #eef0fb;border-radius:18px;overflow:hidden}
+.table-head{display:flex;justify-content:space-between;align-items:center;background:#f6f4ff;padding:12px 14px}
+.total-box{text-align:right;font-size:23px;font-weight:900;color:#392ad8;margin-top:18px;line-height:1.7}
+.pay-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:18px}
+.redtxt{color:#dc2626}.oktxt{color:#16a34a}
+.status{padding:6px 10px;border-radius:999px;font-size:12px;font-weight:900}
+.status.attente{background:#ffedd5;color:#c2410c}
+.status.paye{background:#dcfce7;color:#15803d}
+.status.livre{background:#dbeafe;color:#1d4ed8}
+.searchbar{display:grid;grid-template-columns:1fr 180px;gap:12px;margin-bottom:18px}
+.history-calendar{
+  margin:18px 0;
+  background:#f8f7ff;
+  border:1px solid #e7e3ff;
+  border-radius:18px;
+  padding:16px;
+}
+.cal-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:12px;
+  gap:10px;
+}
+.cal-title{
+  font-weight:900;
+  color:#392ad8;
+}
+.cal-grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:7px;
+}
+.cal-day-name{
+  text-align:center;
+  font-size:12px;
+  font-weight:900;
+  color:#6b7280;
+  padding:5px 0;
+}
+.cal-day{
+  min-height:42px;
+  background:white;
+  border:1px solid #ecebff;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  font-weight:800;
+  cursor:pointer;
+}
+.cal-day:hover{border-color:#735cff;box-shadow:0 0 0 3px rgba(115,92,255,.10)}
+.cal-day.empty{background:transparent;border:0;cursor:default;box-shadow:none}
+.cal-day.has-invoice{
+  background:#f1efff;
+  color:#392ad8;
+  border-color:#cfc8ff;
+}
+.cal-day.has-invoice::after{
+  content:"";
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#4b2be8;
+  position:absolute;
+  bottom:6px;
+}
+.cal-day.selected{
+  background:#4b2be8;
+  color:white;
+  border-color:#4b2be8;
+}
+.cal-day.selected::after{background:white}
+.bulk-bar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  border-radius:16px;
+  padding:12px 14px;
+  margin-top:16px;
+}
+.check-cell{width:38px;text-align:center}
+.check-cell input{width:18px;height:18px}
+
+.suggest-wrap{position:relative}
+.suggest-box{position:absolute;left:0;right:0;top:100%;background:white;border:1px solid #ded8ff;border-radius:14px;box-shadow:0 16px 35px rgba(70,70,120,.18);max-height:220px;overflow:auto;z-index:999;margin-top:6px;display:none}
+.suggest-item{padding:11px 13px;cursor:pointer;border-bottom:1px solid #f0efff}
+.suggest-item:hover,.suggest-item.active{background:#f2f0ff;color:#4b2be8;font-weight:900}
+.cell-focus{box-shadow:0 0 0 3px rgba(115,92,255,.18)!important;border-color:#735cff!important}
+
+/* A4 */
+.a4-page{width:794px;min-height:1123px;background:white;margin:0 auto 25px;padding:35px;color:#000;box-shadow:0 0 18px rgba(0,0,0,.16);font-family:Arial,sans-serif}
+.print-invoice{border-bottom:1px dashed #999;padding:12px 0 16px;margin-bottom:14px;cursor:grab}
+.print-head{display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px}
+.bl-badge{
+  border:1.5px solid #000;
+  padding:0 18px;
+  border-radius:999px;
+  font-weight:900;
+  min-width:100px;
+  height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  background:#f8f8f8;
+}
+.print-table th{background:#111!important;color:#fff!important;border:1px solid #777;padding:6px;font-size:11px;text-align:center}
+.print-table td{border:1px solid #777;padding:6px;font-size:11px;text-align:center}
+.print-title{font-weight:900;margin:8px 0 5px;font-size:12px}
+.print-summary{margin-left:auto;margin-top:8px;width:285px;font-size:12px}
+.print-summary div{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:4px 0}
+.table-subtotal{margin-left:auto;margin-top:4px;margin-bottom:8px;width:260px;font-size:12px;display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:4px 0}
+.a4-tools{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px 0}
+.a4-tools button{font-size:11px;padding:7px 9px;border-radius:9px}
+.page-break-note{font-size:11px;color:#555;margin-bottom:6px;font-style:italic}
+.remark-print{border:1px solid #777;padding:8px;font-size:12px;margin-top:7px}
+
+@media(max-width:950px){
+  .login-card{grid-template-columns:1fr}.login-left{padding:32px}.login-right{padding:32px 24px}
+  .login-left h1{font-size:33px}.login-left p{font-size:16px}
+  .sidebar{transform:translateX(-105%);transition:.25s}.sidebar.open{transform:translateX(0)}
+  .main{margin-left:0;padding:16px}.menu-btn{display:inline-block}
+  .cards,.grid3,.grid4,.pay-grid,.searchbar{grid-template-columns:1fr}
+  .page-title{font-size:23px}.a4-page{width:100%;min-height:auto;padding:15px}
+}
+
+/* V9 UPDATE */
+.a4-stage{display:flex;justify-content:center;transform-origin:top center;transition:.2s ease}
+.a4-zoom-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.page-count-pill{background:#f2f0ff;color:#392ad8;border:1px solid #ded8ff;border-radius:999px;padding:10px 14px;font-weight:900}
+.a4-item{position:relative}
+.a4-tools{position:absolute;left:-128px;top:4px;width:118px;display:flex;flex-direction:column;gap:6px}
+.a4-tools button{font-size:11px;padding:8px 7px;border-radius:10px}
+.page-break-note{position:absolute;left:-128px;top:108px;width:118px;font-size:10px;color:#555}
+.table-subtotal{margin-left:auto;margin-top:4px;margin-bottom:8px;width:260px;font-size:12px;display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:4px 0}
+.price-suggest{margin-top:5px;font-size:12px;color:#4b2be8;font-weight:900;cursor:pointer;display:none}
+.price-suggest.active{background:#f2f0ff;border:1px solid #ded8ff;padding:5px 8px;border-radius:9px;display:inline-block}
+.bl-badge{border:1.5px solid #000!important;padding:0 18px!important;border-radius:999px!important;font-weight:900!important;min-width:100px!important;height:44px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;background:#f8f8f8!important}
+@media print{
+  body{background:white!important}
+  .sidebar,.topbar,.a4-tools,.page-break-note,.panel>div:first-child{display:none!important}
+  .main{margin:0!important;padding:0!important}
+  .panel{box-shadow:none!important;padding:0!important;margin:0!important}
+  .a4-stage{transform:none!important;display:block!important}
+  .a4-page{width:190mm!important;min-height:277mm!important;box-shadow:none!important;margin:0!important;padding:0!important;page-break-after:always}
+  .print-invoice{page-break-inside:avoid;break-inside:avoid}
+}
+
+
+/* V10 FIX Facture du Jour */
+#a4Container{
+  overflow:auto;
+  padding:18px 10px 40px;
+  background:#eef0f7;
+  border-radius:20px;
+}
+.a4-stage{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit, minmax(794px, 794px));
+  gap:28px;
+  justify-content:center;
+  align-items:start;
+  transform:none!important;
+}
+.a4-page{
+  width:794px!important;
+  min-height:1123px!important;
+  margin:0!important;
+  transform-origin:top center;
+}
+.a4-page-number{display:none!important}
+.a4-tools{
+  position:absolute;
+  left:-138px;
+  top:4px;
+  width:128px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.no-export{display:flex}
+@media print{
+  .no-export,.a4-zoom-bar,.a4-tools,.page-break-note,.page-count-pill{display:none!important}
+  #a4Container{overflow:visible!important;background:white!important;padding:0!important}
+  .a4-stage{display:block!important;transform:none!important}
+  .a4-page{width:190mm!important;min-height:277mm!important;box-shadow:none!important;margin:0!important;padding:0!important;transform:none!important;page-break-after:always}
+  .print-invoice{page-break-inside:avoid;break-inside:avoid}
+}
+
+
+/* V12 placement manuel */
+.manual-move-hint{
+  font-size:10px;
+  color:#555;
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:8px;
+  padding:5px;
+  line-height:1.25;
+}
+.a4-item.manual-moving{
+  outline:2px dashed #735cff;
+  outline-offset:4px;
+}
+.a4-item{
+  transition:margin-top .15s ease;
+}
+
+
+/* V13 outils feuille */
+.a4-tools{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:8px;
+}
+.a4-tools-left,
+.a4-tools-right{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.calendar-home{
+  background:#fff;
+  border-radius:22px;
+  padding:18px;
+  box-shadow:0 8px 25px rgba(0,0,0,.08);
+  margin-top:18px;
+}
+.calendar-grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:10px;
+  margin-top:14px;
+}
+.calendar-day{
+  aspect-ratio:1;
+  border-radius:14px;
+  border:1px solid #ececec;
+  background:#fafafa;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-weight:700;
+  transition:.2s;
+}
+.calendar-day:hover{
+  transform:translateY(-2px);
+}
+.calendar-day.has-invoice{
+  background:linear-gradient(135deg,#6f5bff,#8c7bff);
+  color:#fff;
+  border:none;
+  box-shadow:0 6px 18px rgba(111,91,255,.25);
+}
+.calendar-day.active{
+  outline:3px solid rgba(111,91,255,.25);
+}
+
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+
+<div class="login-page" id="loginPage">
+  <div class="login-card">
+    <div class="login-left">
+      <div class="login-icon">🧾</div>
+      <h1>Facturation V4</h1>
+      <p>Créer, modifier, organiser et télécharger vos factures A4 rapidement.</p>
+      <div class="feature"><span>⚡</span><div><b>Saisie rapide</b><br><small>Entrée clavier intelligente</small></div></div>
+      <div class="feature"><span>💰</span><div><b>Devise au choix</b><br><small>Ariary ou Fmg sans conversion</small></div></div>
+      <div class="feature"><span>☁️</span><div><b>Firebase</b><br><small>Sauvegarde sécurisée en ligne</small></div></div>
+    </div>
+    <div class="login-right">
+      <div class="login-box">
+        <div class="lock">🔒</div>
+        <h2>Connexion</h2>
+        <p>Accédez à votre espace facturation</p>
+        <label>Email</label>
+        <input type="email" id="email" placeholder="Votre email">
+        <label>Mot de passe</label>
+        <input type="password" id="password" placeholder="Votre mot de passe">
+        <button class="primary login-btn" id="loginBtn">Se connecter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">🧾 Facturation V4</div>
+    <div class="sub">Rapide • Moderne • Firebase</div>
+    <div class="nav">
+      <button class="active" data-page="home">🏠 Accueil</button>
+      <button data-page="new">➕ Nouvelle facture</button>
+      <button data-page="daily">📄 Facture du Jour</button>
+      <button data-page="history">🕘 Historique</button>
+    </div>
+    <div class="userbox">
+      <b id="userEmail">Admin</b><br><small>Connecté</small>
+      <button class="danger logout" id="logoutBtn">Déconnexion</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="actions"><button class="secondary menu-btn" id="menuBtn">☰</button><h1 class="page-title" id="pageTitle">Accueil</h1></div>
+      <div class="actions"><div class="pill" id="todayText"></div><button class="primary" onclick="openPage('new')">+ Nouvelle facture</button></div>
+    </div>
+
+    <section id="homePage">
+      <div class="cards">
+        <div class="card"><h3>CA du jour</h3><strong id="caToday">0 Ar</strong></div>
+        <div class="card"><h3>Factures</h3><strong id="countToday">0</strong></div>
+        <div class="card"><h3>Pièces</h3><strong id="piecesToday">0</strong></div>
+        <div class="card"><h3>Prochain BL</h3><strong id="nextBlHome">BL-001</strong></div>
+      </div>
+      <div class="panel">
+        <div class="actions" style="justify-content:space-between;margin-bottom:15px">
+          <h2>Factures récentes</h2>
+          <input id="homeSearch" placeholder="🔍 Rechercher BL, client, article..." oninput="renderHome()" style="max-width:360px">
+        </div>
+        <table><thead><tr><th>BL</th><th>Client</th><th>Total</th><th>Reste</th><th>Statut</th><th>Action</th></tr></thead><tbody id="recentBody"></tbody></table>
+      </div>
+    </section>
+
+    <section id="newPage" class="hidden">
+      <div class="panel">
+        <h2>Informations facture</h2>
+        <div class="grid4">
+          <div><label>Date</label><input type="date" id="invoiceDate"></div>
+          <div><label>Client</label><input type="text" id="clientName" placeholder="Nom client"></div>
+          <div><label>Devise</label><select id="currency" onchange="renderTables();renderTotals();saveDraft()"><option value="Ar">Ariary</option><option value="Fmg">Fmg</option></select></div>
+          <div><label>BL automatique</label><input type="text" id="blNumber" readonly></div>
+        </div>
+        <div style="margin-top:14px">
+          <label>Statut</label>
+          <select id="status" onchange="saveDraft()" style="max-width:220px">
+            <option value="attente">En attente</option>
+            <option value="paye">Payé</option>
+            <option value="livre">Livré</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="actions" style="justify-content:space-between;margin-bottom:15px">
+          <h2>Tableaux d'articles</h2>
+          <button class="secondary" onclick="addTable()">+ Ajouter un deuxième tableau</button>
+        </div>
+        <div id="tablesArea"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Paiement & situation</h2>
+        <div class="pay-grid">
+          <div><label>Frais livraison</label><input type="number" id="deliveryFee" value="0" oninput="renderTotals();saveDraft()"></div>
+          <div><label>Avance</label><input type="number" id="advance" value="0" oninput="renderTotals();saveDraft()"></div>
+          <div><label>Reste chez client</label><input type="number" id="clientBalance" value="0" oninput="renderTotals();saveDraft()"></div>
+        </div>
+        <div style="margin-top:16px">
+          <button class="secondary" onclick="toggleRemark()">+ Remarque</button>
+          <button class="secondary" onclick="clearDraft()">Effacer brouillon</button>
+          <div id="remarkArea" class="hidden" style="margin-top:12px"><textarea id="remark" rows="3" placeholder="Remarque..." oninput="saveDraft()"></textarea></div>
+        </div>
+        <div class="total-box">
+          <div>Sous-total : <span id="subtotal">0 Ar</span></div>
+          <div>Grand Total : <span id="grandTotal">0 Ar</span></div>
+          <div>Reste à payer : <span id="remaining" class="redtxt">0 Ar</span></div>
+        </div>
+        <div class="actions" style="justify-content:flex-end;margin-top:18px">
+          <button class="secondary" onclick="openPage('daily');renderA4()">Aperçu A4</button>
+          <button class="primary" id="saveInvoiceBtn">Enregistrer</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="dailyPage" class="hidden">
+      <div class="panel">
+        <div class="actions" style="justify-content:space-between;margin-bottom:18px">
+          <h2>Facture du Jour</h2>
+          <div class="actions">
+            <input type="date" id="dailyDate" style="width:auto" onchange="renderA4()">
+            <button class="secondary" onclick="autoOrganize()">Organisation automatique</button>
+            <button class="primary" onclick="downloadWord()">Télécharger Word A4</button>
+            <button class="primary" onclick="downloadPDF()">Télécharger PDF</button>
+          </div>
+        </div>
+        <div class="a4-zoom-bar no-export" style="justify-content:flex-end;margin-bottom:14px">
+          <button class="secondary" onclick="zoomA4(-0.1)">− Zoom</button>
+          <span class="page-count-pill" id="zoomLabel">100%</span>
+          <button class="secondary" onclick="zoomA4(0.1)">+ Zoom</button>
+          <button class="secondary" onclick="fitA4()">Ajuster A4</button>
+          <span class="page-count-pill" id="pageCountLabel">Pages : 0</span>
+        </div>
+        <div id="a4Container"></div>
+      </div>
+    </section>
+
+    <section id="historyPage" class="hidden">
+      <div class="panel">
+        <h2>Historique</h2>
+        <div class="searchbar">
+          <input id="historySearch" placeholder="🔍 Rechercher BL, client, article..." oninput="renderHistory()">
+          <select id="statusFilter" onchange="renderHistory()">
+            <option value="">Tous statuts</option>
+            <option value="attente">En attente</option>
+            <option value="paye">Payé</option>
+            <option value="livre">Livré</option>
+          </select>
+        </div>
+
+        <div class="history-calendar">
+          <div class="cal-head">
+            <button class="secondary" onclick="changeHistoryMonth(-1)">← Mois précédent</button>
+            <div class="cal-title" id="historyCalendarTitle"></div>
+            <button class="secondary" onclick="changeHistoryMonth(1)">Mois suivant →</button>
+          </div>
+          <div class="cal-grid" id="historyCalendar"></div>
+        </div>
+
+        <div class="grid3">
+          <div><label>Du</label><input type="date" id="filterFrom"></div>
+          <div><label>Au</label><input type="date" id="filterTo"></div>
+          <div><label>Client</label><input type="text" id="filterClient" placeholder="Tous"></div>
+        </div>
+
+        <div class="actions" style="margin-top:16px">
+          <button class="primary" onclick="renderHistory()">Filtrer</button>
+          <button class="secondary" onclick="clearHistoryFilters()">Voir tout</button>
+        </div>
+
+        <div class="bulk-bar">
+          <div>
+            <b>Sélection multiple</b><br>
+            <small id="selectedCount">0 facture sélectionnée</small>
+          </div>
+          <div class="actions">
+            <button class="secondary" onclick="toggleSelectAllHistory()">Tout sélectionner</button>
+            <button class="danger" onclick="deleteSelectedInvoices()">Supprimer sélection</button>
+          </div>
+        </div>
+
+        <table style="margin-top:20px">
+          <thead>
+            <tr>
+              <th class="check-cell">☑</th>
+              <th>BL</th>
+              <th>Date</th>
+              <th>Client</th>
+              <th>Total</th>
+              <th>Reste</th>
+              <th>Statut</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDBuBVP63NFqiv7dptlAbT9OP6rZHJKluk",
+  authDomain: "facturation-7dd16.firebaseapp.com",
+  projectId: "facturation-7dd16",
+  storageBucket: "facturation-7dd16.firebasestorage.app",
+  messagingSenderId: "398728072801",
+  appId: "1:398728072801:web:8128b64634dce8598a420"
+};
+
+const fbApp=initializeApp(firebaseConfig), auth=getAuth(fbApp), db=getFirestore(fbApp);
+let invoices=[], currentTables=[], editingId=null;
+let dailyOrder=[], forcedBreaks=[];
+let historyMonth=new Date();
+let selectedHistoryIds=new Set();
+let currentHistoryList=[];
+let a4Zoom=1;
+let manualOffsets={};
+const today=new Date().toISOString().slice(0,10);
+document.getElementById("todayText").textContent=formatDate(today);
+document.getElementById("dailyDate").value=today;
+
+function toast(msg,type="ok"){const t=document.getElementById("toast");t.textContent=msg;t.className="toast show"+(type==="error"?" error":"");setTimeout(()=>t.className="toast",2500)}
+function formatDate(d){const [y,m,day]=d.split("-");return `${day}/${m}/${y}`}
+function currency(){return document.getElementById("currency").value || "Ar"}
+function money(n,c=currency()){return Math.round(Number(n||0)).toLocaleString("fr-FR")+" "+c}
+function selectedDaily(){return document.getElementById("dailyDate").value||today}
+function dateInvoices(d){return invoices.filter(x=>x.date===d)}
+function statusLabel(s){return s==="paye"?"Payé":s==="livre"?"Livré":"En attente"}
+function statusClass(s){return "status "+(s||"attente")}
+function invoiceSearchText(inv){return [inv.bl,inv.client,inv.status,(inv.tables||[]).map(t=>[t.title,...(t.items||[]).map(i=>i.name)].join(" ")).join(" ")].join(" ").toLowerCase()}
+function escapeHtml(s){
+  return String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function getArticleSuggestions(){
+  const map = new Map();
+  invoices.forEach(inv=>{
+    (inv.tables||[]).forEach(t=>{
+      (t.items||[]).forEach(it=>{
+        const name=String(it.name||"").trim();
+        if(!name) return;
+        map.set(name.toLowerCase(),{name,unit:Number(it.unit||0)});
+      });
+    });
+  });
+  currentTables.forEach(t=>{
+    (t.items||[]).forEach(it=>{
+      const name=String(it.name||"").trim();
+      if(!name) return;
+      if(!map.has(name.toLowerCase())) map.set(name.toLowerCase(),{name,unit:Number(it.unit||0)});
+    });
+  });
+  return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name));
+}
+function closeSuggestions(){
+  document.querySelectorAll(".suggest-box").forEach(b=>{b.style.display="none";b.innerHTML="";b.dataset.active="-1"});
+}
+function showSuggestions(ti){
+  const input=document.getElementById("article-"+ti);
+  const box=document.getElementById("suggest-"+ti);
+  if(!input||!box) return;
+  const q=input.value.trim().toLowerCase();
+  const data=getArticleSuggestions().filter(x=>x.name.toLowerCase().includes(q)).slice(0,8);
+  if(!q || !data.length){closeSuggestions();return}
+  box.innerHTML=data.map((x,i)=>`<div class="suggest-item" data-index="${i}" data-name="${escapeHtml(x.name)}" data-unit="${x.unit}">${escapeHtml(x.name)}${x.unit?` <small style="float:right;color:#6b7280">${money(x.unit)}</small>`:""}</div>`).join("");
+  box.style.display="block";
+  box.dataset.active="0";
+  box.querySelector(".suggest-item")?.classList.add("active");
+  box.querySelectorAll(".suggest-item").forEach(item=>{
+    item.onmousedown=(e)=>{e.preventDefault();chooseSuggestion(ti,Number(item.dataset.index))}
+  });
+}
+function moveSuggestion(ti,dir){
+  const box=document.getElementById("suggest-"+ti);
+  if(!box || box.style.display!=="block") return false;
+  const items=[...box.querySelectorAll(".suggest-item")];
+  if(!items.length) return false;
+  let active=Number(box.dataset.active||0);
+  active=(active+dir+items.length)%items.length;
+  items.forEach(x=>x.classList.remove("active"));
+  items[active].classList.add("active");
+  items[active].scrollIntoView({block:"nearest"});
+  box.dataset.active=String(active);
+  return true;
+}
+function chooseSuggestion(ti,index=null){
+  const box=document.getElementById("suggest-"+ti);
+  const items=[...box.querySelectorAll(".suggest-item")];
+  if(!items.length) return false;
+  const active=index!==null?index:Number(box.dataset.active||0);
+  const item=items[active];
+  document.getElementById("article-"+ti).value=item.dataset.name;
+  closeSuggestions();
+  showPriceSuggestion(ti, Number(item.dataset.unit||0));
+  document.getElementById("price-"+ti).focus();
+  updatePreview(ti);
+  saveDraft();
+  return true;
+}
+
+function showPriceSuggestion(ti, price){
+  const el=document.getElementById("priceSuggest-"+ti);
+  if(!el) return;
+  if(Number(price||0)>0){
+    el.textContent=money(Number(price));
+    el.dataset.price=String(price);
+    el.classList.add("active");
+  }else{
+    el.textContent="";
+    el.dataset.price="";
+    el.classList.remove("active");
+  }
+}
+window.applyPriceSuggestion=function(ti){
+  const el=document.getElementById("priceSuggest-"+ti);
+  const price=Number(el?.dataset.price||0);
+  if(price>0){
+    document.getElementById("price-"+ti).value=price;
+    updatePreview(ti);
+    saveDraft();
+    el.classList.remove("active");
+    document.getElementById("price-"+ti).focus();
+  }
+}
+function focusGridCell(table,row,col){
+  const el=document.querySelector(`.grid-cell[data-table="${table}"][data-row="${row}"][data-col="${col}"]`);
+  if(el){
+    document.querySelectorAll(".cell-focus").forEach(x=>x.classList.remove("cell-focus"));
+    el.focus();el.classList.add("cell-focus");
+    setTimeout(()=>el.classList.remove("cell-focus"),500);
+    return true;
+  }
+  return false;
+}
+function moveGrid(from,dir){
+  const table=Number(from.dataset.table), row=Number(from.dataset.row), col=Number(from.dataset.col);
+  let nr=row,nc=col;
+  if(dir==="left") nc=col-1;
+  if(dir==="right") nc=col+1;
+  if(dir==="up") nr=row-1;
+  if(dir==="down") nr=row+1;
+  if(nc<0){nc=2;nr=row-1}
+  if(nc>2){nc=0;nr=row+1}
+  return focusGridCell(table,nr,nc);
+}
+
+function nextBLForDate(date){
+  let max=0;dateInvoices(date).forEach(inv=>{const m=String(inv.bl||"").match(/BL-(\d+)/);if(m)max=Math.max(max,Number(m[1]))});
+  return "BL-"+String(max+1).padStart(3,"0")
+}
+function subtotal(){return currentTables.reduce((s,t)=>s+t.items.reduce((a,i)=>a+Number(i.total||0),0),0)}
+function grandTotal(){return subtotal()+Number(document.getElementById("deliveryFee").value||0)}
+function remaining(){return grandTotal()-Number(document.getElementById("advance").value||0)}
+
+window.openPage=function(page){
+  document.querySelectorAll("main section").forEach(s=>s.classList.add("hidden"));
+  document.getElementById(page+"Page").classList.remove("hidden");
+  const titles={home:"Accueil",new:"Nouvelle facture",daily:"Facture du Jour",history:"Historique"};
+  document.getElementById("pageTitle").textContent=titles[page];
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+  document.getElementById("sidebar").classList.remove("open");
+  if(page==="new"&&!editingId) resetInvoice(false);
+  if(page==="daily") renderA4();
+  if(page==="history") renderHistory();
+}
+document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>openPage(b.dataset.page));
+document.getElementById("menuBtn").onclick=()=>document.getElementById("sidebar").classList.toggle("open");
+
+document.getElementById("loginBtn").onclick=async()=>{
+  try{await signInWithEmailAndPassword(auth,document.getElementById("email").value.trim(),document.getElementById("password").value)}
+  catch(e){toast("Erreur connexion : "+e.message,"error")}
+}
+document.getElementById("logoutBtn").onclick=()=>signOut(auth);
+onAuthStateChanged(auth,async user=>{
+  if(user){document.getElementById("loginPage").style.display="none";document.getElementById("app").style.display="block";document.getElementById("userEmail").textContent=user.email;await loadInvoices();openPage("home")}
+  else{document.getElementById("loginPage").style.display="flex";document.getElementById("app").style.display="none"}
+});
+
+async function loadInvoices(){
+  const q=query(collection(db,"factures"),orderBy("createdAt","desc"));
+  const snap=await getDocs(q);
+  invoices=snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderHome();
+}
+
+function renderInvoiceCalendar(){
+  const grid=document.getElementById("calendarGrid");
+  if(!grid) return;
+
+  const invoices=allInvoices();
+  const map={};
+
+  invoices.forEach(inv=>{
+    if(!map[inv.date]) map[inv.date]=0;
+    map[inv.date]++;
+  });
+
+  grid.innerHTML="";
+
+  const now=new Date();
+  const year=now.getFullYear();
+  const month=now.getMonth();
+
+  const lastDay=new Date(year,month+1,0).getDate();
+
+  for(let d=1;d<=lastDay;d++){
+    const dateStr=`${String(d).padStart(2,"0")}/${String(month+1).padStart(2,"0")}/${year}`;
+
+    const has=map[dateStr];
+
+    const div=document.createElement("div");
+    div.className="calendar-day"+(has?" has-invoice":"");
+    div.textContent=d;
+
+    div.onclick=()=>{
+      document.getElementById("dailyDate").value=toInputDate(dateStr);
+      renderA4();
+      openPage("daily");
+      document.querySelectorAll(".calendar-day").forEach(x=>x.classList.remove("active"));
+      div.classList.add("active");
+    };
+
+    grid.appendChild(div);
+  }
+}
+
+function renderHome(){
+  const t=dateInvoices(today), ca=t.reduce((s,x)=>s+Number(x.grandTotal||x.total||0),0), pieces=t.reduce((s,x)=>s+(x.tables||[]).reduce((a,t)=>a+t.items.reduce((b,i)=>b+Number(i.qty||0),0),0),0);
+  const q=(document.getElementById("homeSearch")?.value||"").toLowerCase();
+  let list=invoices.slice(0,20); if(q) list=invoices.filter(inv=>invoiceSearchText(inv).includes(q));
+  document.getElementById("caToday").textContent=money(ca,"Ar");
+  document.getElementById("countToday").textContent=t.length;
+  document.getElementById("piecesToday").textContent=pieces;
+  document.getElementById("nextBlHome").textContent=nextBLForDate(today);
+  document.getElementById("recentBody").innerHTML=list.slice(0,12).map(inv=>`<tr><td>${inv.bl}</td><td>${inv.client}</td><td>${money(inv.grandTotal||inv.total,inv.currency||"Ar")}</td><td>${money(inv.remaining||0,inv.currency||"Ar")}</td><td><span class="${statusClass(inv.status)}">${statusLabel(inv.status)}</span></td><td><button class="secondary" onclick="editInvoice('${inv.id}')">Modifier</button> <button class="secondary" onclick="duplicateInvoice('${inv.id}')">Dupliquer</button></td></tr>`).join("");
+}
+
+function resetInvoice(force=false){
+  if(!force && localStorage.getItem("invoiceDraft") && !editingId){
+    if(confirm("Un brouillon existe. Voulez-vous le récupérer ?")){loadDraft();return}
+  }
+  editingId=null;currentTables=[{title:"Tableau 1",items:[]}];
+  document.getElementById("invoiceDate").value=today;
+  document.getElementById("clientName").value="";
+  document.getElementById("currency").value="Ar";
+  document.getElementById("status").value="attente";
+  document.getElementById("blNumber").value=nextBLForDate(today);
+  document.getElementById("deliveryFee").value=0;document.getElementById("advance").value=0;document.getElementById("clientBalance").value=0;
+  document.getElementById("remark").value="";document.getElementById("remarkArea").classList.add("hidden");
+  renderTables();renderTotals();
+}
+function getDraftData(){
+  return {date:document.getElementById("invoiceDate").value,client:document.getElementById("clientName").value,currency:currency(),status:document.getElementById("status").value,bl:document.getElementById("blNumber").value,tables:currentTables,deliveryFee:document.getElementById("deliveryFee").value,advance:document.getElementById("advance").value,clientBalance:document.getElementById("clientBalance").value,remark:document.getElementById("remark").value}
+}
+window.saveDraft=function(){if(editingId)return;localStorage.setItem("invoiceDraft",JSON.stringify(getDraftData()))}
+function loadDraft(){
+  const d=JSON.parse(localStorage.getItem("invoiceDraft")||"{}");
+  currentTables=d.tables||[{title:"Tableau 1",items:[]}];
+  document.getElementById("invoiceDate").value=d.date||today;document.getElementById("clientName").value=d.client||"";document.getElementById("currency").value=d.currency||"Ar";document.getElementById("status").value=d.status||"attente";document.getElementById("blNumber").value=d.bl||nextBLForDate(today);
+  document.getElementById("deliveryFee").value=d.deliveryFee||0;document.getElementById("advance").value=d.advance||0;document.getElementById("clientBalance").value=d.clientBalance||0;document.getElementById("remark").value=d.remark||"";
+  document.getElementById("remarkArea").classList.toggle("hidden",!d.remark);renderTables();renderTotals();
+}
+window.clearDraft=function(){localStorage.removeItem("invoiceDraft");toast("Brouillon effacé ✅");resetInvoice(true)}
+document.getElementById("invoiceDate").onchange=()=>{if(!editingId)document.getElementById("blNumber").value=nextBLForDate(document.getElementById("invoiceDate").value);saveDraft()}
+document.getElementById("clientName").oninput=()=>saveDraft();
+window.toggleRemark=()=>document.getElementById("remarkArea").classList.toggle("hidden");
+window.addTable=function(){currentTables.push({title:"Tableau "+(currentTables.length+1),items:[]});renderTables();saveDraft()}
+window.removeTable=function(ti){if(currentTables.length===1){toast("Il faut au moins un tableau.","error");return}currentTables.splice(ti,1);renderTables();renderTotals();saveDraft()}
+
+function renderTables(){
+  document.getElementById("tablesArea").innerHTML=currentTables.map((t,ti)=>`
+    <div class="invoice-table">
+      <div class="table-head">
+        <input value="${t.title}" onchange="renameTable(${ti},this.value)" style="max-width:280px;font-weight:900;color:#392ad8">
+        <button class="danger" onclick="removeTable(${ti})">Supprimer tableau</button>
+      </div>
+      <table>
+        <thead><tr><th>Nombre de pièces</th><th>Nom d'article</th><th>Prix U</th><th>Total</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><input class="entry grid-cell" data-row="0" data-col="0" data-next="article-${ti}" data-table="${ti}" id="qty-${ti}" type="number" placeholder="Qté"></td>
+            <td>
+              <div class="suggest-wrap">
+                <input class="entry article-input grid-cell" data-row="0" data-col="1" data-next="price-${ti}" data-table="${ti}" id="article-${ti}" placeholder="Nom article" autocomplete="off">
+                <div class="suggest-box" id="suggest-${ti}"></div>
+              </div>
+            </td>
+            <td>
+              <input class="entry price-input grid-cell" data-row="0" data-col="2" data-add="${ti}" data-table="${ti}" id="price-${ti}" type="number" placeholder="Prix">
+              <div class="price-suggest" id="priceSuggest-${ti}" onclick="applyPriceSuggestion(${ti})"></div>
+            </td>
+            <td id="preview-${ti}">Auto</td>
+            <td><button class="primary" onclick="addItem(${ti})">Ajouter</button></td>
+          </tr>
+          ${t.items.map((it,ii)=>`
+            <tr>
+              <td><input class="grid-cell" data-table="${ti}" data-row="${ii+1}" data-col="0" type="number" value="${it.qty}" onchange="editItem(${ti},${ii},'qty',this.value)"></td>
+              <td><input class="grid-cell" data-table="${ti}" data-row="${ii+1}" data-col="1" value="${it.name}" onchange="editItem(${ti},${ii},'name',this.value)"></td>
+              <td><input class="grid-cell" data-table="${ti}" data-row="${ii+1}" data-col="2" type="number" value="${it.unit}" onchange="editItem(${ti},${ii},'unit',this.value)"></td>
+              <td>${money(it.total)}</td>
+              <td><button class="danger" onclick="removeItem(${ti},${ii})">Supprimer</button></td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>`).join("");
+  bindEnter();
+}
+window.renameTable=(ti,val)=>{currentTables[ti].title=val;saveDraft()}
+function bindEnter(){
+  document.querySelectorAll(".grid-cell").forEach(inp=>{
+    inp.addEventListener("keydown",e=>{
+      const ti=Number(inp.dataset.table);
+      if(inp.classList.contains("article-input")){
+        if(e.key==="ArrowDown"){e.preventDefault(); if(!moveSuggestion(ti,1)) moveGrid(inp,"down"); return}
+        if(e.key==="ArrowUp"){e.preventDefault(); if(!moveSuggestion(ti,-1)) moveGrid(inp,"up"); return}
+        if(e.key==="Enter" && document.getElementById("suggest-"+ti)?.style.display==="block"){e.preventDefault(); chooseSuggestion(ti); return}
+        if(e.key==="Escape"){e.preventDefault(); closeSuggestions(); return}
+      }
+      if(inp.classList.contains("price-input")){
+        const ps=document.getElementById("priceSuggest-"+ti);
+        if((e.key==="ArrowDown"||e.key==="ArrowUp") && ps?.classList.contains("active")){e.preventDefault();ps.style.outline="2px solid #735cff";return}
+        if(e.key==="Enter" && ps?.classList.contains("active") && !inp.value){e.preventDefault();applyPriceSuggestion(ti);return}
+      }
+      if(e.key==="ArrowLeft"){e.preventDefault();moveGrid(inp,"left");return}
+      if(e.key==="ArrowRight"){e.preventDefault();moveGrid(inp,"right");return}
+      if(e.key==="ArrowUp"){e.preventDefault();moveGrid(inp,"up");return}
+      if(e.key==="ArrowDown"){e.preventDefault();moveGrid(inp,"down");return}
+      if(e.key==="Enter"){
+        e.preventDefault();
+        if(inp.dataset.next) document.getElementById(inp.dataset.next).focus();
+        else if(inp.dataset.add!==undefined) addItem(Number(inp.dataset.add));
+        else moveGrid(inp,"right");
+      }
+    });
+    inp.addEventListener("input",()=>{
+      if(inp.classList.contains("article-input")) showSuggestions(Number(inp.dataset.table));
+      if(inp.classList.contains("price-input")){
+        const ps=document.getElementById("priceSuggest-"+Number(inp.dataset.table));
+        if(inp.value && ps) ps.classList.remove("active");
+      }
+      if(inp.id && inp.id.includes("-")) updatePreview(inp.id.split("-")[1]);
+      saveDraft();
+    });
+  });
+}
+function updatePreview(ti){
+  const unit=Number(document.getElementById("price-"+ti)?.value||0), qty=Number(document.getElementById("qty-"+ti)?.value||0);
+  const p=document.getElementById("preview-"+ti); if(p) p.textContent=(unit&&qty)?money(unit*qty):"Auto";
+}
+window.addItem=function(ti){
+  const name=document.getElementById("article-"+ti).value.trim(), unit=Number(document.getElementById("price-"+ti).value||0), qty=Number(document.getElementById("qty-"+ti).value||0);
+  if(!name||!unit||!qty){toast("Remplis article, prix et quantité.","error");return}
+  currentTables[ti].items.push({name,unit,qty,total:unit*qty});
+  renderTables();renderTotals();saveDraft();
+  setTimeout(()=>document.getElementById("qty-"+ti).focus(),50);
+}
+window.editItem=function(ti,ii,field,val){
+  const it=currentTables[ti].items[ii];
+  it[field]=(field==="name")?val:Number(val||0);
+  it.total=Number(it.unit||0)*Number(it.qty||0);
+  renderTables();renderTotals();saveDraft();
+}
+window.removeItem=function(ti,ii){currentTables[ti].items.splice(ii,1);renderTables();renderTotals();saveDraft()}
+window.renderTotals=function(){
+  document.getElementById("subtotal").textContent=money(subtotal());
+  document.getElementById("grandTotal").textContent=money(grandTotal());
+  document.getElementById("remaining").textContent=money(remaining());
+}
+
+document.getElementById("saveInvoiceBtn").onclick=async()=>saveInvoice();
+async function saveInvoice(){
+  const data={
+    date:document.getElementById("invoiceDate").value,
+    client:document.getElementById("clientName").value.trim(),
+    currency:currency(),
+    status:document.getElementById("status").value,
+    bl:document.getElementById("blNumber").value,
+    tables:currentTables,
+    subtotal:subtotal(),
+    deliveryFee:Number(document.getElementById("deliveryFee").value||0),
+    advance:Number(document.getElementById("advance").value||0),
+    clientBalance:Number(document.getElementById("clientBalance").value||0),
+    grandTotal:grandTotal(),
+    remaining:remaining(),
+    remark:document.getElementById("remark").value.trim(),
+    updatedAt:new Date().toISOString()
+  };
+  if(!data.client){toast("Ajoute le nom du client.","error");return}
+  if(!data.tables.some(t=>t.items.length)){toast("Ajoute au moins un article.","error");return}
+  if(editingId) await updateDoc(doc(db,"factures",editingId),data);
+  else await addDoc(collection(db,"factures"),{...data,createdAt:serverTimestamp()});
+  localStorage.removeItem("invoiceDraft");
+  await loadInvoices();toast("Facture enregistrée ✅");resetInvoice(true);openPage("home");
+}
+window.editInvoice=function(id){
+  const inv=invoices.find(x=>x.id===id); if(!inv)return;
+  editingId=id;currentTables=inv.tables||[{title:"Tableau 1",items:inv.items||[]}];
+  document.getElementById("invoiceDate").value=inv.date;document.getElementById("clientName").value=inv.client;document.getElementById("currency").value=inv.currency||"Ar";document.getElementById("status").value=inv.status||"attente";document.getElementById("blNumber").value=inv.bl;
+  document.getElementById("deliveryFee").value=inv.deliveryFee||0;document.getElementById("advance").value=inv.advance||0;document.getElementById("clientBalance").value=inv.clientBalance||0;
+  document.getElementById("remark").value=inv.remark||"";document.getElementById("remarkArea").classList.toggle("hidden",!inv.remark);
+  renderTables();renderTotals();openPage("new");
+}
+window.duplicateInvoice=function(id){
+  const inv=invoices.find(x=>x.id===id); if(!inv)return;
+  editingId=null;currentTables=JSON.parse(JSON.stringify(inv.tables||[]));
+  document.getElementById("invoiceDate").value=today;document.getElementById("clientName").value=inv.client;document.getElementById("currency").value=inv.currency||"Ar";document.getElementById("status").value="attente";document.getElementById("blNumber").value=nextBLForDate(today);
+  document.getElementById("deliveryFee").value=inv.deliveryFee||0;document.getElementById("advance").value=0;document.getElementById("clientBalance").value=0;document.getElementById("remark").value=inv.remark||"";
+  renderTables();renderTotals();openPage("new");toast("Facture dupliquée ✅");
+}
+window.deleteInvoice=async function(id){if(confirm("Supprimer cette facture ?")){await deleteDoc(doc(db,"factures",id));selectedHistoryIds.delete(id);await loadInvoices();renderHistory();toast("Facture supprimée ✅")}}
+
+function historyFilteredList(){
+  let list=[...invoices];
+  const from=document.getElementById("filterFrom").value;
+  const to=document.getElementById("filterTo").value;
+  const client=document.getElementById("filterClient").value.toLowerCase();
+  const q=(document.getElementById("historySearch").value||"").toLowerCase();
+  const sf=document.getElementById("statusFilter").value;
+
+  if(from) list=list.filter(x=>x.date>=from);
+  if(to) list=list.filter(x=>x.date<=to);
+  if(client) list=list.filter(x=>String(x.client).toLowerCase().includes(client));
+  if(q) list=list.filter(x=>invoiceSearchText(x).includes(q));
+  if(sf) list=list.filter(x=>(x.status||"attente")===sf);
+
+  return list;
+}
+
+window.renderHistory=function(){
+  renderHistoryCalendar();
+  currentHistoryList=historyFilteredList();
+
+  selectedHistoryIds=new Set([...selectedHistoryIds].filter(id=>currentHistoryList.some(x=>x.id===id)));
+
+  document.getElementById("historyBody").innerHTML=currentHistoryList.map(inv=>`
+    <tr>
+      <td class="check-cell">
+        <input type="checkbox" class="history-check" value="${inv.id}" ${selectedHistoryIds.has(inv.id)?"checked":""} onchange="toggleHistorySelection('${inv.id}',this.checked)">
+      </td>
+      <td>${inv.bl}</td>
+      <td>${formatDate(inv.date)}</td>
+      <td>${inv.client}</td>
+      <td>${money(inv.grandTotal||inv.total,inv.currency||"Ar")}</td>
+      <td>${money(inv.remaining||0,inv.currency||"Ar")}</td>
+      <td><span class="${statusClass(inv.status)}">${statusLabel(inv.status)}</span></td>
+      <td>
+        <button class="secondary" onclick="editInvoice('${inv.id}')">Modifier</button>
+        <button class="secondary" onclick="duplicateInvoice('${inv.id}')">Dupliquer</button>
+        <button class="danger" onclick="deleteInvoice('${inv.id}')">Supprimer</button>
+      </td>
+    </tr>
+  `).join("");
+
+  updateSelectedCount();
+}
+
+function renderHistoryCalendar(){
+  const y=historyMonth.getFullYear();
+  const m=historyMonth.getMonth();
+  const monthName=historyMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+  document.getElementById("historyCalendarTitle").textContent=monthName.charAt(0).toUpperCase()+monthName.slice(1);
+
+  const invoiceDates=new Set(invoices.map(x=>x.date));
+  const first=new Date(y,m,1);
+  const last=new Date(y,m+1,0);
+  const startDay=(first.getDay()+6)%7;
+  const names=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+
+  let htmlCal=names.map(n=>`<div class="cal-day-name">${n}</div>`).join("");
+  for(let i=0;i<startDay;i++) htmlCal+=`<div class="cal-day empty"></div>`;
+
+  for(let d=1;d<=last.getDate();d++){
+    const dateStr=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const has=invoiceDates.has(dateStr);
+    const selected=document.getElementById("filterFrom")?.value===dateStr && document.getElementById("filterTo")?.value===dateStr;
+    htmlCal+=`<div class="cal-day ${has?"has-invoice":""} ${selected?"selected":""}" onclick="selectHistoryDate('${dateStr}')">${d}</div>`;
+  }
+
+  document.getElementById("historyCalendar").innerHTML=htmlCal;
+}
+
+window.changeHistoryMonth=function(delta){
+  historyMonth=new Date(historyMonth.getFullYear(),historyMonth.getMonth()+delta,1);
+  renderHistoryCalendar();
+}
+
+window.selectHistoryDate=function(dateStr){
+  document.getElementById("filterFrom").value=dateStr;
+  document.getElementById("filterTo").value=dateStr;
+  selectedHistoryIds.clear();
+  renderHistory();
+}
+
+window.clearHistoryFilters=function(){
+  document.getElementById("filterFrom").value="";
+  document.getElementById("filterTo").value="";
+  document.getElementById("filterClient").value="";
+  document.getElementById("historySearch").value="";
+  document.getElementById("statusFilter").value="";
+  selectedHistoryIds.clear();
+  renderHistory();
+}
+
+window.toggleHistorySelection=function(id,checked){
+  if(checked) selectedHistoryIds.add(id);
+  else selectedHistoryIds.delete(id);
+  updateSelectedCount();
+}
+
+function updateSelectedCount(){
+  const n=selectedHistoryIds.size;
+  const el=document.getElementById("selectedCount");
+  if(el) el.textContent=n+" facture"+(n>1?"s":"")+" sélectionnée"+(n>1?"s":"");
+}
+
+window.toggleSelectAllHistory=function(){
+  const visibleIds=currentHistoryList.map(x=>x.id);
+  const allSelected=visibleIds.length>0 && visibleIds.every(id=>selectedHistoryIds.has(id));
+  if(allSelected) visibleIds.forEach(id=>selectedHistoryIds.delete(id));
+  else visibleIds.forEach(id=>selectedHistoryIds.add(id));
+  renderHistory();
+}
+
+window.deleteSelectedInvoices=async function(){
+  const ids=[...selectedHistoryIds];
+  if(!ids.length){toast("Aucune facture sélectionnée.","error");return}
+  if(!confirm("Supprimer "+ids.length+" facture(s) sélectionnée(s) ?")) return;
+
+  for(const id of ids){
+    await deleteDoc(doc(db,"factures",id));
+  }
+
+  selectedHistoryIds.clear();
+  await loadInvoices();
+  renderHistory();
+  toast("Factures supprimées ✅");
+}
+
+function printInvoice(inv){
+  const cur=inv.currency||"Ar";
+  const tableCount=(inv.tables||[]).length;
+  const tables=(inv.tables||[]).map(t=>{
+    const tableSubtotal=(t.items||[]).reduce((s,it)=>s+Number(it.total||0),0);
+    return `
+    <div class="print-title">${t.title}</div>
+    <table class="print-table"><thead><tr><th>N°</th><th>Nombre de pièces</th><th>Nom d'article</th><th>Prix Unitaire</th><th>Prix Total</th></tr></thead>
+    <tbody>${(t.items||[]).map((it,i)=>`<tr><td>${i+1}</td><td>${it.qty}</td><td style="text-align:left">${it.name}</td><td>${money(it.unit,cur)}</td><td>${money(it.total,cur)}</td></tr>`).join("")}</tbody></table>
+    ${tableCount>1?`<div class="table-subtotal"><b>Sous-total ${t.title}</b><b>${money(tableSubtotal,cur)}</b></div>`:""}`;
+  }).join("");
+  const deliveryFee=Number(inv.deliveryFee||0), advance=Number(inv.advance||0), clientBalance=Number(inv.clientBalance||0);
+  const subtotalValue=Number(inv.subtotal||0), grandValue=Number(inv.grandTotal||inv.total||0), remainingValue=Number(inv.remaining||0);
+  const hasExtra=deliveryFee>0||advance>0||clientBalance>0, hasManyTables=tableCount>1;
+  const summaryRows=(hasExtra||hasManyTables)?`
+    ${hasManyTables?`<div><b>Total tableaux</b><b>${money(subtotalValue,cur)}</b></div>`:""}
+    ${deliveryFee>0?`<div>Livraison <b>${money(deliveryFee,cur)}</b></div>`:""}
+    <div><b>Grand Total</b><b>${money(grandValue,cur)}</b></div>
+    ${advance>0?`<div>Avance <b>${money(advance,cur)}</b></div>`:""}
+    ${advance>0?`<div><b>Reste à payer</b><b>${money(remainingValue,cur)}</b></div>`:""}
+    ${clientBalance>0?`<div>Reste chez client <b>${money(clientBalance,cur)}</b></div>`:""}
+  `:`<div><b>Total</b><b>${money(grandValue,cur)}</b></div>`;
+  return `<div class="print-invoice" draggable="true" data-id="${inv.id}">
+    <div class="print-head"><div>Date : ${formatDate(inv.date)}<br><br>Client : <b>${inv.client}</b></div><div class="bl-badge">${inv.bl}</div></div>
+    ${tables}<div class="print-summary">${summaryRows}</div>
+    ${inv.remark?`<div class="remark-print"><b>Remarque :</b> ${inv.remark.replace(/\\n/g,"<br>").replace(/ {4}/g,"&nbsp;&nbsp;&nbsp;&nbsp;")}</div>`:""}
+  </div>`;
+}
+function a4InvoiceBlock(inv){
+  const breakText=forcedBreaks.includes(inv.id)?`<div class="page-break-note">Saut page avant</div>`:"";
+  const offset=Number(manualOffsets[inv.id]||0);
+  return `<div class="a4-item" data-id="${inv.id}" style="margin-top:${offset}px">
+    
+<div class="a4-tools">
+  <div class="a4-tools-left">
+    <button class="secondary" onclick="moveA4('${inv.id}',-1)">↑ Monter</button>
+    <button class="secondary" onclick="moveA4('${inv.id}',1)">↓ Descendre</button>
+    <button class="secondary" onclick="togglePageBreak('${inv.id}')">${forcedBreaks.includes(inv.id)?"Annuler saut":"Saut page avant"}</button>
+  </div>
+
+  <div class="a4-tools-right">
+    <button class="secondary" onclick="nudgeInvoice('${inv.id}',-10)">↑ Fin</button>
+    <button class="secondary" onclick="nudgeInvoice('${inv.id}',10)">↓ Fin</button>
+    <button class="secondary" onclick="resetInvoiceOffset('${inv.id}')">Reset place</button>
+  </div>
+</div>
+
+    ${breakText}
+    ${printInvoice(inv)}
+  </div>`;
+}
+
+window.nudgeInvoice=function(id,delta){
+  manualOffsets[id]=Number(manualOffsets[id]||0)+delta;
+  manualOffsets[id]=Math.max(-350,Math.min(350,manualOffsets[id]));
+  saveA4Layout();
+  renderA4();
+}
+
+window.resetInvoiceOffset=function(id){
+  delete manualOffsets[id];
+  saveA4Layout();
+  renderA4();
+}
+
+window.moveA4=function(id,dir){
+  const i=dailyOrder.indexOf(id);
+  if(i<0) return;
+  const j=i+dir;
+  if(j<0 || j>=dailyOrder.length) return;
+  [dailyOrder[i],dailyOrder[j]]=[dailyOrder[j],dailyOrder[i]];
+  saveA4Layout();
+  saveA4Layout();
+  renderA4();
+}
+
+window.togglePageBreak=function(id){
+  if(forcedBreaks.includes(id)) forcedBreaks=forcedBreaks.filter(x=>x!==id);
+  else forcedBreaks.push(id);
+  saveA4Layout();
+  saveA4Layout();
+  renderA4();
+}
+
+function activateDragA4(){
+  document.querySelectorAll(".a4-item").forEach(item=>{
+    let startY=0,startOffset=0,moving=false;
+    const printable=item.querySelector(".print-invoice");
+    if(!printable) return;
+
+    printable.style.cursor="grab";
+
+    printable.addEventListener("mousedown",e=>{
+      if(e.button!==0) return;
+      moving=true;
+      startY=e.clientY;
+      startOffset=Number(manualOffsets[item.dataset.id]||0);
+      item.classList.add("manual-moving");
+      printable.style.cursor="grabbing";
+      e.preventDefault();
+    });
+
+    document.addEventListener("mousemove",e=>{
+      if(!moving) return;
+      const delta=(e.clientY-startY)/Math.max(a4Zoom,0.35);
+      const newOffset=Math.max(-350,Math.min(350,startOffset+delta));
+      manualOffsets[item.dataset.id]=Math.round(newOffset);
+      item.style.marginTop=manualOffsets[item.dataset.id]+"px";
+    });
+
+    document.addEventListener("mouseup",()=>{
+      if(!moving) return;
+      moving=false;
+      item.classList.remove("manual-moving");
+      printable.style.cursor="grab";
+      saveA4Layout();
+    });
+  });
+}
+function orderKey(){return "dailyOrder-"+selectedDaily()}
+function breaksKey(){return "forcedBreaks-"+selectedDaily()}
+function offsetsKey(){return "manualOffsets-"+selectedDaily()}
+function saveA4Layout(){localStorage.setItem(orderKey(),JSON.stringify(dailyOrder));localStorage.setItem(breaksKey(),JSON.stringify(forcedBreaks));localStorage.setItem(offsetsKey(),JSON.stringify(manualOffsets))}
+function loadA4Layout(ids){
+  try{
+    const saved=JSON.parse(localStorage.getItem(orderKey())||"[]");
+    const savedBreaks=JSON.parse(localStorage.getItem(breaksKey())||"[]");
+    dailyOrder=saved.filter(id=>ids.includes(id));ids.forEach(id=>{if(!dailyOrder.includes(id))dailyOrder.push(id)});
+    forcedBreaks=savedBreaks.filter(id=>ids.includes(id));
+    manualOffsets=JSON.parse(localStorage.getItem(offsetsKey())||"{}");
+    Object.keys(manualOffsets).forEach(id=>{if(!ids.includes(id)) delete manualOffsets[id]});
+  }catch(e){dailyOrder=[...ids];forcedBreaks=[]}
+}
+window.renderA4=function(){
+  const listOriginal=dateInvoices(selectedDaily()), cont=document.getElementById("a4Container");
+  if(!listOriginal.length){
+    cont.innerHTML="<p>Aucune facture pour cette date.</p>";
+    document.getElementById("pageCountLabel")&&(document.getElementById("pageCountLabel").textContent="Pages : 0");
+    return;
+  }
+
+  const ids=listOriginal.map(x=>x.id);
+  if(!dailyOrder.length || !dailyOrder.every(id=>ids.includes(id))) loadA4Layout(ids);
+  dailyOrder=dailyOrder.filter(id=>ids.includes(id));
+  ids.forEach(id=>{if(!dailyOrder.includes(id))dailyOrder.push(id)});
+  forcedBreaks=forcedBreaks.filter(id=>ids.includes(id));
+
+  const list=dailyOrder.map(id=>listOriginal.find(x=>x.id===id)).filter(Boolean);
+  let pages=[[]],h=0;
+  list.forEach(inv=>{
+    const count=(inv.tables||[]).reduce((s,t)=>s+(t.items||[]).length,0);
+    const est=160+count*25+(inv.tables||[]).length*45;
+    if((forcedBreaks.includes(inv.id)&&pages[pages.length-1].length>0)||h+est>980){
+      pages.push([]);h=0;
+    }
+    pages[pages.length-1].push(inv);h+=est;
+  });
+
+  cont.innerHTML=`<div class="a4-stage" id="a4Stage">${pages.map((p,i)=>`<div class="a4-page" style="transform:scale(${a4Zoom});margin-bottom:${(1123*a4Zoom)-1123}px!important">${p.map(inv=>a4InvoiceBlock(inv)).join("")}</div>`).join("")}</div>`;
+  document.getElementById("zoomLabel")&&(document.getElementById("zoomLabel").textContent=Math.round(a4Zoom*100)+"%");
+  document.getElementById("pageCountLabel")&&(document.getElementById("pageCountLabel").textContent="Pages : "+pages.length);
+  activateDragA4();
+}
+window.autoOrganize=()=>{const list=dateInvoices(selectedDaily()).slice().sort((a,b)=>((a.tables||[]).reduce((s,t)=>s+(t.items||[]).length,0))-((b.tables||[]).reduce((s,t)=>s+(t.items||[]).length,0)));dailyOrder=list.map(x=>x.id);forcedBreaks=[];saveA4Layout();renderA4()}
+
+window.zoomA4=function(delta){
+  a4Zoom=Math.max(0.35,Math.min(1.6,Number((a4Zoom+delta).toFixed(2))));
+  renderA4();
+}
+window.fitA4=function(){
+  a4Zoom=1;
+  renderA4();
+}
+window.downloadPDF=function(){
+  const old=a4Zoom;
+  a4Zoom=1;
+  renderA4();
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{a4Zoom=old;renderA4()},400);
+  },250);
+}
+function wordInvoiceHTML(inv){
+  const cur=inv.currency||"Ar";
+  const tableCount=(inv.tables||[]).length;
+  const deliveryFee=Number(inv.deliveryFee||0), advance=Number(inv.advance||0), clientBalance=Number(inv.clientBalance||0);
+  const subtotalValue=Number(inv.subtotal||0), grandValue=Number(inv.grandTotal||inv.total||0), remainingValue=Number(inv.remaining||0);
+  const hasExtra=deliveryFee>0 || advance>0 || clientBalance>0;
+  const hasManyTables=tableCount>1;
+
+  const tablesHtml=(inv.tables||[]).map(t=>{
+    const tableSubtotal=(t.items||[]).reduce((s,it)=>s+Number(it.total||0),0);
+    return `
+      <div class="table-title">${t.title}</div>
+      <table class="items-table">
+        <thead><tr><th style="width:9%">N°</th><th style="width:24%">Nombre de pièces</th><th style="width:34%">Nom d'article</th><th style="width:16%">Prix Unitaire</th><th style="width:17%">Prix Total</th></tr></thead>
+        <tbody>${(t.items||[]).map((it,i)=>`<tr><td>${i+1}</td><td>${it.qty}</td><td class="left">${it.name}</td><td>${money(it.unit,cur)}</td><td>${money(it.total,cur)}</td></tr>`).join("")}</tbody>
+      </table>
+      ${tableCount>1?`<table class="summary-table"><tr><td><b>Sous-total ${t.title}</b></td><td class="amount"><b>${money(tableSubtotal,cur)}</b></td></tr></table>`:""}
+    `;
+  }).join("");
+
+  const summaryRows=(hasExtra||hasManyTables)?`
+    ${hasManyTables?`<tr><td><b>Total tableaux</b></td><td class="amount"><b>${money(subtotalValue,cur)}</b></td></tr>`:""}
+    ${deliveryFee>0?`<tr><td>Livraison</td><td class="amount"><b>${money(deliveryFee,cur)}</b></td></tr>`:""}
+    <tr><td><b>Grand Total</b></td><td class="amount"><b>${money(grandValue,cur)}</b></td></tr>
+    ${advance>0?`<tr><td>Avance</td><td class="amount"><b>${money(advance,cur)}</b></td></tr>`:""}
+    ${advance>0?`<tr><td><b>Reste à payer</b></td><td class="amount"><b>${money(remainingValue,cur)}</b></td></tr>`:""}
+    ${clientBalance>0?`<tr><td>Reste chez client</td><td class="amount"><b>${money(clientBalance,cur)}</b></td></tr>`:""}
+  `:`<tr><td><b>Total</b></td><td class="amount"><b>${money(grandValue,cur)}</b></td></tr>`;
+
+  return `<div class="invoice-word ${forcedBreaks.includes(inv.id)?"forced-page":""}">
+    <table class="header-table"><tr><td>Date : ${formatDate(inv.date)}<br>Client : <b>${inv.client}</b></td><td class="bl-cell"><span class="bl-word">${inv.bl}</span></td></tr></table>
+    ${tablesHtml}
+    <table class="summary-table final-summary">${summaryRows}</table>
+    ${inv.remark?`<div class="remark-word"><b>Remarque :</b> ${inv.remark.replace(/\\n/g,"<br>").replace(/ {4}/g,"&nbsp;&nbsp;&nbsp;&nbsp;")}</div>`:""}
+  </div>`;
+}
+
+window.downloadWord=function(){
+  const listOriginal=dateInvoices(selectedDaily());
+  if(!listOriginal.length){toast("Aucune facture pour cette date.","error");return}
+  const ids=listOriginal.map(x=>x.id);
+  if(!dailyOrder.length) loadA4Layout(ids);
+  dailyOrder=dailyOrder.filter(id=>ids.includes(id));
+  ids.forEach(id=>{if(!dailyOrder.includes(id))dailyOrder.push(id)});
+  forcedBreaks=forcedBreaks.filter(id=>ids.includes(id));
+  const list=dailyOrder.map(id=>listOriginal.find(x=>x.id===id)).filter(Boolean);
+  const content=list.map(inv=>wordInvoiceHTML(inv)).join("");
+
+  const style=`<style>
+    @page Section1{size:21cm 29.7cm;margin:1cm}
+    div.Section1{page:Section1}
+    body{font-family:Arial,sans-serif;color:#000;background:#fff;margin:0;padding:0;font-size:10pt}
+    .invoice-word{width:100%;margin:0 0 14pt 0;padding:0 0 10pt 0;border-bottom:1pt dashed #999;page-break-inside:avoid}
+    .forced-page{page-break-before:always}
+    .header-table{width:100%;border-collapse:collapse;margin-bottom:8pt}
+    .header-table td{border:none;font-size:11pt;padding:0;vertical-align:top}
+    .bl-cell{text-align:right;width:30%}
+    .bl-word{display:inline-block;border:1.5pt solid #000;border-radius:18pt;padding:6pt 18pt;font-weight:bold;text-align:center;min-width:55pt;background:#f8f8f8}
+    .table-title{font-weight:bold;margin:6pt 0 3pt 0;font-size:10pt}
+    .items-table{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:3pt}
+    .items-table th{background:#111;color:#fff;border:1pt solid #777;padding:4pt;text-align:center;font-size:9pt;font-weight:bold}
+    .items-table td{border:1pt solid #777;padding:4pt;text-align:center;font-size:9pt}
+    .items-table td.left{text-align:left}
+    .summary-table{width:42%;margin-left:auto;border-collapse:collapse;margin-top:3pt;margin-bottom:5pt}
+    .summary-table td{border:none;border-bottom:1pt solid #ddd;padding:3pt 0;font-size:9pt}
+    .summary-table td.amount{text-align:right!important;white-space:nowrap}
+    .summary-table td:last-child{text-align:right!important;white-space:nowrap}
+    .remark-word{border:1pt solid #777;padding:5pt;margin-top:5pt;font-size:9pt}
+  
+/* V12 placement manuel */
+.manual-move-hint{
+  font-size:10px;
+  color:#555;
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:8px;
+  padding:5px;
+  line-height:1.25;
+}
+.a4-item.manual-moving{
+  outline:2px dashed #735cff;
+  outline-offset:4px;
+}
+.a4-item{
+  transition:margin-top .15s ease;
+}
+
+
+/* V13 outils feuille */
+.a4-tools{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:8px;
+}
+.a4-tools-left,
+.a4-tools-right{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.calendar-home{
+  background:#fff;
+  border-radius:22px;
+  padding:18px;
+  box-shadow:0 8px 25px rgba(0,0,0,.08);
+  margin-top:18px;
+}
+.calendar-grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:10px;
+  margin-top:14px;
+}
+.calendar-day{
+  aspect-ratio:1;
+  border-radius:14px;
+  border:1px solid #ececec;
+  background:#fafafa;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-weight:700;
+  transition:.2s;
+}
+.calendar-day:hover{
+  transform:translateY(-2px);
+}
+.calendar-day.has-invoice{
+  background:linear-gradient(135deg,#6f5bff,#8c7bff);
+  color:#fff;
+  border:none;
+  box-shadow:0 6px 18px rgba(111,91,255,.25);
+}
+.calendar-day.active{
+  outline:3px solid rgba(111,91,255,.25);
+}
+
+</style>`;
+  const docHtml=`<!DOCTYPE html><html><head><meta charset="UTF-8">${style}</head><body><div class="Section1">${content}</div></body></html>`;
+  const blob=new Blob(["\ufeff",docHtml],{type:"application/msword"});
+  const url=URL.createObjectURL(blob), a=document.createElement("a");
+  a.href=url;a.download="Factures-A4.doc";document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+document.addEventListener("click",e=>{if(!e.target.closest(".suggest-wrap")) closeSuggestions()});
+
+// REMARQUE_TAB_FORCE
+document.addEventListener("keydown",e=>{
+  const r=e.target;
+  if(r && r.id==="remark" && e.key==="Tab"){
+    e.preventDefault();
+    e.stopPropagation();
+
+    const indent="        ";
+    const start=r.selectionStart;
+    const end=r.selectionEnd;
+
+    if(typeof r.setRangeText==="function"){
+      r.setRangeText(indent,start,end,"end");
+    }else{
+      r.value=r.value.substring(0,start)+indent+r.value.substring(end);
+      r.selectionStart=r.selectionEnd=start+indent.length;
+    }
+
+    saveDraft();
+  }
+},true);
+
+document.addEventListener("keydown",e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){e.preventDefault();if(!document.getElementById("newPage").classList.contains("hidden"))saveInvoice()}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="n"){e.preventDefault();openPage("new")}
+});
+</script>
+</body>
+</html>
