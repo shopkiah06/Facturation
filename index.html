@@ -210,6 +210,29 @@ td input{padding:10px;border-radius:10px}
   .cards,.grid3,.grid4,.pay-grid,.searchbar{grid-template-columns:1fr}
   .page-title{font-size:23px}.a4-page{width:100%;min-height:auto;padding:15px}
 }
+
+/* V9 UPDATE */
+.a4-stage{display:flex;justify-content:center;transform-origin:top center;transition:.2s ease}
+.a4-zoom-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.page-count-pill{background:#f2f0ff;color:#392ad8;border:1px solid #ded8ff;border-radius:999px;padding:10px 14px;font-weight:900}
+.a4-item{position:relative}
+.a4-tools{position:absolute;left:-128px;top:4px;width:118px;display:flex;flex-direction:column;gap:6px}
+.a4-tools button{font-size:11px;padding:8px 7px;border-radius:10px}
+.page-break-note{position:absolute;left:-128px;top:108px;width:118px;font-size:10px;color:#555}
+.table-subtotal{margin-left:auto;margin-top:4px;margin-bottom:8px;width:260px;font-size:12px;display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:4px 0}
+.price-suggest{margin-top:5px;font-size:12px;color:#4b2be8;font-weight:900;cursor:pointer;display:none}
+.price-suggest.active{background:#f2f0ff;border:1px solid #ded8ff;padding:5px 8px;border-radius:9px;display:inline-block}
+.bl-badge{border:1.5px solid #000!important;padding:0 18px!important;border-radius:999px!important;font-weight:900!important;min-width:100px!important;height:44px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;background:#f8f8f8!important}
+@media print{
+  body{background:white!important}
+  .sidebar,.topbar,.a4-tools,.page-break-note,.panel>div:first-child{display:none!important}
+  .main{margin:0!important;padding:0!important}
+  .panel{box-shadow:none!important;padding:0!important;margin:0!important}
+  .a4-stage{transform:none!important;display:block!important}
+  .a4-page{width:190mm!important;min-height:277mm!important;box-shadow:none!important;margin:0!important;padding:0!important;page-break-after:always}
+  .print-invoice{page-break-inside:avoid;break-inside:avoid}
+}
+
 </style>
 </head>
 <body>
@@ -337,7 +360,15 @@ td input{padding:10px;border-radius:10px}
             <input type="date" id="dailyDate" style="width:auto" onchange="renderA4()">
             <button class="secondary" onclick="autoOrganize()">Organisation automatique</button>
             <button class="primary" onclick="downloadWord()">Télécharger Word A4</button>
+            <button class="primary" onclick="downloadPDF()">Télécharger PDF</button>
           </div>
+        </div>
+        <div class="a4-zoom-bar" style="justify-content:flex-end;margin-bottom:14px">
+          <button class="secondary" onclick="zoomA4(-0.1)">− Zoom</button>
+          <span class="page-count-pill" id="zoomLabel">100%</span>
+          <button class="secondary" onclick="zoomA4(0.1)">+ Zoom</button>
+          <button class="secondary" onclick="fitA4()">Ajuster A4</button>
+          <span class="page-count-pill" id="pageCountLabel">Pages : 0</span>
         </div>
         <div id="a4Container"></div>
       </div>
@@ -427,6 +458,7 @@ let dailyOrder=[], forcedBreaks=[];
 let historyMonth=new Date();
 let selectedHistoryIds=new Set();
 let currentHistoryList=[];
+let a4Zoom=1;
 const today=new Date().toISOString().slice(0,10);
 document.getElementById("todayText").textContent=formatDate(today);
 document.getElementById("dailyDate").value=today;
@@ -501,12 +533,37 @@ function chooseSuggestion(ti,index=null){
   const active=index!==null?index:Number(box.dataset.active||0);
   const item=items[active];
   document.getElementById("article-"+ti).value=item.dataset.name;
-  if(Number(item.dataset.unit||0)>0) document.getElementById("price-"+ti).value=item.dataset.unit;
   closeSuggestions();
+  showPriceSuggestion(ti, Number(item.dataset.unit||0));
   document.getElementById("price-"+ti).focus();
   updatePreview(ti);
   saveDraft();
   return true;
+}
+
+function showPriceSuggestion(ti, price){
+  const el=document.getElementById("priceSuggest-"+ti);
+  if(!el) return;
+  if(Number(price||0)>0){
+    el.textContent=money(Number(price));
+    el.dataset.price=String(price);
+    el.classList.add("active");
+  }else{
+    el.textContent="";
+    el.dataset.price="";
+    el.classList.remove("active");
+  }
+}
+window.applyPriceSuggestion=function(ti){
+  const el=document.getElementById("priceSuggest-"+ti);
+  const price=Number(el?.dataset.price||0);
+  if(price>0){
+    document.getElementById("price-"+ti).value=price;
+    updatePreview(ti);
+    saveDraft();
+    el.classList.remove("active");
+    document.getElementById("price-"+ti).focus();
+  }
 }
 function focusGridCell(table,row,col){
   const el=document.querySelector(`.grid-cell[data-table="${table}"][data-row="${row}"][data-col="${col}"]`);
@@ -619,25 +676,28 @@ function renderTables(){
         <button class="danger" onclick="removeTable(${ti})">Supprimer tableau</button>
       </div>
       <table>
-        <thead><tr><th>Article</th><th>Prix U</th><th>Qté</th><th>Total</th><th>Action</th></tr></thead>
+        <thead><tr><th>Nombre de pièces</th><th>Nom d'article</th><th>Prix U</th><th>Total</th><th>Action</th></tr></thead>
         <tbody>
           <tr>
+            <td><input class="entry grid-cell" data-row="0" data-col="0" data-next="article-${ti}" data-table="${ti}" id="qty-${ti}" type="number" placeholder="Qté"></td>
             <td>
               <div class="suggest-wrap">
-                <input class="entry article-input grid-cell" data-row="0" data-col="0" data-next="price-${ti}" data-table="${ti}" id="article-${ti}" placeholder="Nom article" autocomplete="off">
+                <input class="entry article-input grid-cell" data-row="0" data-col="1" data-next="price-${ti}" data-table="${ti}" id="article-${ti}" placeholder="Nom article" autocomplete="off">
                 <div class="suggest-box" id="suggest-${ti}"></div>
               </div>
             </td>
-            <td><input class="entry grid-cell" data-row="0" data-col="1" data-next="qty-${ti}" data-table="${ti}" id="price-${ti}" type="number" placeholder="Prix"></td>
-            <td><input class="entry grid-cell" data-row="0" data-col="2" data-add="${ti}" data-table="${ti}" id="qty-${ti}" type="number" placeholder="Qté"></td>
+            <td>
+              <input class="entry price-input grid-cell" data-row="0" data-col="2" data-add="${ti}" data-table="${ti}" id="price-${ti}" type="number" placeholder="Prix">
+              <div class="price-suggest" id="priceSuggest-${ti}" onclick="applyPriceSuggestion(${ti})"></div>
+            </td>
             <td id="preview-${ti}">Auto</td>
             <td><button class="primary" onclick="addItem(${ti})">Ajouter</button></td>
           </tr>
           ${t.items.map((it,ii)=>`
             <tr>
-              <td><input class="grid-cell" data-table="${ti}" data-row="${ii+1}" data-col="0" value="${it.name}" onchange="editItem(${ti},${ii},'name',this.value)"></td>
-              <td><input class="grid-cell" data-table="${ti}" data-row="${ii+1}" data-col="1" type="number" value="${it.unit}" onchange="editItem(${ti},${ii},'unit',this.value)"></td>
-              <td><input class="grid-cell" data-table="${ti}" data-row="${ii+1}" data-col="2" type="number" value="${it.qty}" onchange="editItem(${ti},${ii},'qty',this.value)"></td>
+              <td><input class="grid-cell" data-table="${ti}" data-row="${ii+1}" data-col="0" type="number" value="${it.qty}" onchange="editItem(${ti},${ii},'qty',this.value)"></td>
+              <td><input class="grid-cell" data-table="${ti}" data-row="${ii+1}" data-col="1" value="${it.name}" onchange="editItem(${ti},${ii},'name',this.value)"></td>
+              <td><input class="grid-cell" data-table="${ti}" data-row="${ii+1}" data-col="2" type="number" value="${it.unit}" onchange="editItem(${ti},${ii},'unit',this.value)"></td>
               <td>${money(it.total)}</td>
               <td><button class="danger" onclick="removeItem(${ti},${ii})">Supprimer</button></td>
             </tr>`).join("")}
@@ -654,10 +714,13 @@ function bindEnter(){
       if(inp.classList.contains("article-input")){
         if(e.key==="ArrowDown"){e.preventDefault(); if(!moveSuggestion(ti,1)) moveGrid(inp,"down"); return}
         if(e.key==="ArrowUp"){e.preventDefault(); if(!moveSuggestion(ti,-1)) moveGrid(inp,"up"); return}
-        if(e.key==="Enter" && document.getElementById("suggest-"+ti)?.style.display==="block"){
-          e.preventDefault(); chooseSuggestion(ti); return;
-        }
+        if(e.key==="Enter" && document.getElementById("suggest-"+ti)?.style.display==="block"){e.preventDefault(); chooseSuggestion(ti); return}
         if(e.key==="Escape"){e.preventDefault(); closeSuggestions(); return}
+      }
+      if(inp.classList.contains("price-input")){
+        const ps=document.getElementById("priceSuggest-"+ti);
+        if((e.key==="ArrowDown"||e.key==="ArrowUp") && ps?.classList.contains("active")){e.preventDefault();ps.style.outline="2px solid #735cff";return}
+        if(e.key==="Enter" && ps?.classList.contains("active") && !inp.value){e.preventDefault();applyPriceSuggestion(ti);return}
       }
       if(e.key==="ArrowLeft"){e.preventDefault();moveGrid(inp,"left");return}
       if(e.key==="ArrowRight"){e.preventDefault();moveGrid(inp,"right");return}
@@ -672,6 +735,10 @@ function bindEnter(){
     });
     inp.addEventListener("input",()=>{
       if(inp.classList.contains("article-input")) showSuggestions(Number(inp.dataset.table));
+      if(inp.classList.contains("price-input")){
+        const ps=document.getElementById("priceSuggest-"+Number(inp.dataset.table));
+        if(inp.value && ps) ps.classList.remove("active");
+      }
       if(inp.id && inp.id.includes("-")) updatePreview(inp.id.split("-")[1]);
       saveDraft();
     });
@@ -881,31 +948,31 @@ function printInvoice(inv){
     <tbody>${(t.items||[]).map((it,i)=>`<tr><td>${i+1}</td><td>${it.qty}</td><td style="text-align:left">${it.name}</td><td>${money(it.unit,cur)}</td><td>${money(it.total,cur)}</td></tr>`).join("")}</tbody></table>
     ${tableCount>1?`<div class="table-subtotal"><b>Sous-total ${t.title}</b><b>${money(tableSubtotal,cur)}</b></div>`:""}`;
   }).join("");
-
   const deliveryFee=Number(inv.deliveryFee||0), advance=Number(inv.advance||0), clientBalance=Number(inv.clientBalance||0);
   const subtotalValue=Number(inv.subtotal||0), grandValue=Number(inv.grandTotal||inv.total||0), remainingValue=Number(inv.remaining||0);
-  const hasExtra=deliveryFee>0 || advance>0 || clientBalance>0;
-  const hasManyTables=tableCount>1;
-
-  const summaryRows = (hasExtra || hasManyTables) ? `
+  const hasExtra=deliveryFee>0||advance>0||clientBalance>0, hasManyTables=tableCount>1;
+  const summaryRows=(hasExtra||hasManyTables)?`
     ${hasManyTables?`<div><b>Total tableaux</b><b>${money(subtotalValue,cur)}</b></div>`:""}
     ${deliveryFee>0?`<div>Livraison <b>${money(deliveryFee,cur)}</b></div>`:""}
     <div><b>Grand Total</b><b>${money(grandValue,cur)}</b></div>
     ${advance>0?`<div>Avance <b>${money(advance,cur)}</b></div>`:""}
     ${advance>0?`<div><b>Reste à payer</b><b>${money(remainingValue,cur)}</b></div>`:""}
     ${clientBalance>0?`<div>Reste chez client <b>${money(clientBalance,cur)}</b></div>`:""}
-  ` : `
-    <div><b>Total</b><b>${money(grandValue,cur)}</b></div>
-  `;
-
+  `:`<div><b>Total</b><b>${money(grandValue,cur)}</b></div>`;
   return `<div class="print-invoice" draggable="true" data-id="${inv.id}">
-    <div class="print-head">
-      <div>Date : ${formatDate(inv.date)}<br><br>Client : <b>${inv.client}</b></div>
-      <div class="bl-badge">${inv.bl}</div>
-    </div>
-    ${tables}
-    <div class="print-summary">${summaryRows}</div>
-    ${inv.remark?`<div class="remark-print"><b>Remarque :</b> ${inv.remark}</div>`:""}
+    <div class="print-head"><div>Date : ${formatDate(inv.date)}<br><br>Client : <b>${inv.client}</b></div><div class="bl-badge">${inv.bl}</div></div>
+    ${tables}<div class="print-summary">${summaryRows}</div>
+    ${inv.remark?`<div class="remark-print"><b>Remarque :</b> ${inv.remark.replace(/\\n/g,"<br>").replace(/ {4}/g,"&nbsp;&nbsp;&nbsp;&nbsp;")}</div>`:""}
+  </div>`;
+}
+function a4InvoiceBlock(inv){
+  const breakText=forcedBreaks.includes(inv.id)?`<div class="page-break-note">Saut page avant</div>`:"";
+  return `<div class="a4-item" data-id="${inv.id}">
+    <div class="a4-tools">
+      <button class="secondary" onclick="moveA4('${inv.id}',-1)">↑ Monter</button>
+      <button class="secondary" onclick="moveA4('${inv.id}',1)">↓ Descendre</button>
+      <button class="secondary" onclick="togglePageBreak('${inv.id}')">${forcedBreaks.includes(inv.id)?"Annuler saut":"Saut page avant"}</button>
+    </div>${breakText}${printInvoice(inv)}
   </div>`;
 }
 
@@ -928,12 +995,14 @@ window.moveA4=function(id,dir){
   const j=i+dir;
   if(j<0 || j>=dailyOrder.length) return;
   [dailyOrder[i],dailyOrder[j]]=[dailyOrder[j],dailyOrder[i]];
+  saveA4Layout();
   renderA4();
 }
 
 window.togglePageBreak=function(id){
   if(forcedBreaks.includes(id)) forcedBreaks=forcedBreaks.filter(x=>x!==id);
   else forcedBreaks.push(id);
+  saveA4Layout();
   renderA4();
 }
 
@@ -950,38 +1019,59 @@ function activateDragA4(){
       const to=dailyOrder.indexOf(item.dataset.id);
       if(from<0 || to<0) return;
       dailyOrder.splice(to,0,dailyOrder.splice(from,1)[0]);
+      saveA4Layout();
       renderA4();
     });
   });
 }
 
+function orderKey(){return "dailyOrder-"+selectedDaily()}
+function breaksKey(){return "forcedBreaks-"+selectedDaily()}
+function saveA4Layout(){localStorage.setItem(orderKey(),JSON.stringify(dailyOrder));localStorage.setItem(breaksKey(),JSON.stringify(forcedBreaks))}
+function loadA4Layout(ids){
+  try{
+    const saved=JSON.parse(localStorage.getItem(orderKey())||"[]");
+    const savedBreaks=JSON.parse(localStorage.getItem(breaksKey())||"[]");
+    dailyOrder=saved.filter(id=>ids.includes(id));ids.forEach(id=>{if(!dailyOrder.includes(id))dailyOrder.push(id)});
+    forcedBreaks=savedBreaks.filter(id=>ids.includes(id));
+  }catch(e){dailyOrder=[...ids];forcedBreaks=[]}
+}
 window.renderA4=function(){
   const listOriginal=dateInvoices(selectedDaily()), cont=document.getElementById("a4Container");
-  if(!listOriginal.length){cont.innerHTML="<p>Aucune facture pour cette date.</p>";return}
-
+  if(!listOriginal.length){cont.innerHTML="<p>Aucune facture pour cette date.</p>";document.getElementById("pageCountLabel")&&(document.getElementById("pageCountLabel").textContent="Pages : 0");return}
   const ids=listOriginal.map(x=>x.id);
-  dailyOrder=dailyOrder.filter(id=>ids.includes(id));
-  ids.forEach(id=>{if(!dailyOrder.includes(id)) dailyOrder.push(id)});
+  if(!dailyOrder.length || !dailyOrder.every(id=>ids.includes(id))) loadA4Layout(ids);
+  dailyOrder=dailyOrder.filter(id=>ids.includes(id));ids.forEach(id=>{if(!dailyOrder.includes(id))dailyOrder.push(id)});
   forcedBreaks=forcedBreaks.filter(id=>ids.includes(id));
-
   const list=dailyOrder.map(id=>listOriginal.find(x=>x.id===id)).filter(Boolean);
-  let pages=[[]], h=0;
-
+  let pages=[[]],h=0;
   list.forEach(inv=>{
     const count=(inv.tables||[]).reduce((s,t)=>s+(t.items||[]).length,0);
     const est=160+count*25+(inv.tables||[]).length*45;
-    if((forcedBreaks.includes(inv.id)&&pages[pages.length-1].length>0) || h+est>980){
-      pages.push([]);
-      h=0;
-    }
-    pages[pages.length-1].push(inv);
-    h+=est;
+    if((forcedBreaks.includes(inv.id)&&pages[pages.length-1].length>0)||h+est>980){pages.push([]);h=0}
+    pages[pages.length-1].push(inv);h+=est;
   });
-
-  cont.innerHTML=pages.map((p,i)=>`<div class="a4-page"><div style="display:flex;justify-content:flex-end;margin-bottom:10px;font-size:13px"><span>Page ${i+1}/${pages.length}</span></div>${p.map(inv=>a4InvoiceBlock(inv)).join("")}</div>`).join("");
+  cont.innerHTML=`<div class="a4-stage" id="a4Stage" style="transform:scale(${a4Zoom})">${pages.map((p,i)=>`<div class="a4-page"><div style="display:flex;justify-content:flex-end;margin-bottom:10px;font-size:13px"><span>Page ${i+1}/${pages.length}</span></div>${p.map(inv=>a4InvoiceBlock(inv)).join("")}</div>`).join("")}</div>`;
+  document.getElementById("zoomLabel")&&(document.getElementById("zoomLabel").textContent=Math.round(a4Zoom*100)+"%");
+  document.getElementById("pageCountLabel")&&(document.getElementById("pageCountLabel").textContent="Pages : "+pages.length);
   activateDragA4();
 }
-window.autoOrganize=()=>{const list=dateInvoices(selectedDaily()).slice().sort((a,b)=>((a.tables||[]).reduce((s,t)=>s+(t.items||[]).length,0))-((b.tables||[]).reduce((s,t)=>s+(t.items||[]).length,0)));dailyOrder=list.map(x=>x.id);forcedBreaks=[];renderA4()}
+window.autoOrganize=()=>{const list=dateInvoices(selectedDaily()).slice().sort((a,b)=>((a.tables||[]).reduce((s,t)=>s+(t.items||[]).length,0))-((b.tables||[]).reduce((s,t)=>s+(t.items||[]).length,0)));dailyOrder=list.map(x=>x.id);forcedBreaks=[];saveA4Layout();renderA4()}
+
+window.zoomA4=function(delta){
+  a4Zoom=Math.max(0.35,Math.min(1.6,Number((a4Zoom+delta).toFixed(2))));
+  const st=document.getElementById("a4Stage");if(st)st.style.transform=`scale(${a4Zoom})`;
+  document.getElementById("zoomLabel")&&(document.getElementById("zoomLabel").textContent=Math.round(a4Zoom*100)+"%");
+}
+window.fitA4=function(){
+  const cont=document.getElementById("a4Container");if(!cont)return;
+  const available=Math.max(320,cont.clientWidth-40);
+  a4Zoom=Math.max(0.35,Math.min(1,available/794));renderA4();
+}
+window.downloadPDF=function(){
+  const old=a4Zoom;a4Zoom=1;renderA4();
+  setTimeout(()=>{window.print();a4Zoom=old;renderA4()},200);
+}
 function wordInvoiceHTML(inv){
   const cur = inv.currency || "Ar";
   const tableCount = (inv.tables || []).length;
@@ -1205,7 +1295,30 @@ window.downloadWord=function(){
       margin-top: 5pt;
       font-size: 9pt;
     }
-  </style>`;
+  
+/* V9 UPDATE */
+.a4-stage{display:flex;justify-content:center;transform-origin:top center;transition:.2s ease}
+.a4-zoom-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.page-count-pill{background:#f2f0ff;color:#392ad8;border:1px solid #ded8ff;border-radius:999px;padding:10px 14px;font-weight:900}
+.a4-item{position:relative}
+.a4-tools{position:absolute;left:-128px;top:4px;width:118px;display:flex;flex-direction:column;gap:6px}
+.a4-tools button{font-size:11px;padding:8px 7px;border-radius:10px}
+.page-break-note{position:absolute;left:-128px;top:108px;width:118px;font-size:10px;color:#555}
+.table-subtotal{margin-left:auto;margin-top:4px;margin-bottom:8px;width:260px;font-size:12px;display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:4px 0}
+.price-suggest{margin-top:5px;font-size:12px;color:#4b2be8;font-weight:900;cursor:pointer;display:none}
+.price-suggest.active{background:#f2f0ff;border:1px solid #ded8ff;padding:5px 8px;border-radius:9px;display:inline-block}
+.bl-badge{border:1.5px solid #000!important;padding:0 18px!important;border-radius:999px!important;font-weight:900!important;min-width:100px!important;height:44px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;background:#f8f8f8!important}
+@media print{
+  body{background:white!important}
+  .sidebar,.topbar,.a4-tools,.page-break-note,.panel>div:first-child{display:none!important}
+  .main{margin:0!important;padding:0!important}
+  .panel{box-shadow:none!important;padding:0!important;margin:0!important}
+  .a4-stage{transform:none!important;display:block!important}
+  .a4-page{width:190mm!important;min-height:277mm!important;box-shadow:none!important;margin:0!important;padding:0!important;page-break-after:always}
+  .print-invoice{page-break-inside:avoid;break-inside:avoid}
+}
+
+</style>`;
 
   const docHtml = `
     <!DOCTYPE html>
@@ -1233,6 +1346,22 @@ window.downloadWord=function(){
   URL.revokeObjectURL(url);
 }
 
+
+function setupRemarkKeys(){
+  const r=document.getElementById("remark");
+  if(!r || r.dataset.keysReady) return;
+  r.dataset.keysReady="1";
+  r.addEventListener("keydown",e=>{
+    if(e.key==="Tab"){
+      e.preventDefault();
+      const start=r.selectionStart,end=r.selectionEnd,spaces="    ";
+      r.value=r.value.substring(0,start)+spaces+r.value.substring(end);
+      r.selectionStart=r.selectionEnd=start+spaces.length;
+      saveDraft();
+    }
+  });
+}
+setupRemarkKeys();
 document.addEventListener("click",e=>{if(!e.target.closest(".suggest-wrap")) closeSuggestions()});
 document.addEventListener("keydown",e=>{
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){e.preventDefault();if(!document.getElementById("newPage").classList.contains("hidden"))saveInvoice()}
